@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<title>NeuraScan — Poster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+
+  :root {
+    color-scheme: dark;
+    --bg: #08090b; --surface-1: #0f1318; --surface-2: #161b21; --surface-3: #1d242c;
+    --border: rgba(255,255,255,0.08); --border-firm: rgba(255,255,255,0.14);
+    --ink: #e9ecef; --ink-2: #9aa4af; --ink-muted: #6b7682;
+    --glioma: #3987e5; --meningioma: #d95926; --no_tumor: #199e70; --pituitary: #9085e9;
+    --warning: #c98500;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  /* Keep the dark theme when printing or exporting to PDF. */
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: var(--bg); color: var(--ink);
+         font-family: 'Inter', system-ui, -apple-system, sans-serif;
+         -webkit-font-smoothing: antialiased; line-height: 1.55; }
+  h1, h2, h3 { letter-spacing: -0.02em; line-height: 1.2; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace;
+          font-variant-numeric: tabular-nums; }
+  a { color: var(--glioma); }
+
+  /* A2 portrait — 420 x 594 mm */
+  @page { size: 420mm 594mm; margin: 0; }
+  body { display: flex; justify-content: center; background: #050607; }
+  .poster {
+    width: 420mm; height: 594mm; background: var(--bg);
+    padding: 15mm 18mm 14mm; display: flex; flex-direction: column;
+    position: relative; overflow: hidden;
+  }
+  .poster::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 70% 32% at 50% 0%, rgba(120,145,180,0.13), transparent 70%),
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px) 0 0 / 100% 14mm,
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px) 0 0 / 14mm 100%;
+    mask-image: linear-gradient(to bottom, #000 0%, transparent 42%);
+  }
+  .poster > * { position: relative; z-index: 1; }
+
+  /* Header */
+  header { border-bottom: 1px solid var(--border-firm); padding-bottom: 6mm;
+            margin-bottom: 6mm; }
+  .eyebrow { display: flex; align-items: center; gap: 10px; font-size: 13px;
+              letter-spacing: 0.16em; text-transform: uppercase;
+              color: var(--ink-muted); font-weight: 600; margin-bottom: 5mm; }
+  .eyebrow .rule { flex: 1; height: 1px; background: var(--border-firm); }
+  h1 { font-size: 50px; font-weight: 800; margin-bottom: 4mm; max-width: 300mm; }
+  h1 em { font-style: normal; color: var(--ink-2); font-weight: 500; }
+  .sub { font-size: 19px; color: var(--ink-2); max-width: 290mm; line-height: 1.5; }
+  .byline { display: flex; gap: 8mm; flex-wrap: wrap; margin-top: 4.5mm;
+             font-size: 14.5px; color: var(--ink-muted); }
+  .byline b { color: var(--ink-2); font-weight: 600; }
+
+  /* Hero stats */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm;
+            margin-bottom: 6mm; }
+  .stat { background: var(--surface-1); border: 1px solid var(--border);
+           border-radius: 4mm; padding: 4.5mm 5mm 4mm; }
+  .stat.lead { background: linear-gradient(160deg, #182130, var(--surface-1) 65%);
+                border-color: var(--border-firm); }
+  .stat-val { font-size: 44px; font-weight: 800; letter-spacing: -0.035em;
+               line-height: 1; font-variant-numeric: tabular-nums; }
+  .stat.lead .stat-val { font-size: 54px; }
+  .stat-val small { font-size: 24px; font-weight: 600; color: var(--ink-2); }
+  .stat-lbl { font-size: 13.5px; color: var(--ink-muted); margin-top: 2.5mm;
+               letter-spacing: 0.02em; }
+
+  /* Columns */
+  .cols { display: grid; grid-template-columns: 1fr 1.34fr; gap: 5mm;
+           flex-shrink: 0; }
+  .col { display: flex; flex-direction: column; gap: 3mm; }
+
+  .panel { background: var(--surface-1); border: 1px solid var(--border);
+            border-radius: 4mm; padding: 5mm; }
+  .panel.flush { padding-bottom: 4mm; }
+  h2 { font-size: 13px; font-weight: 700; letter-spacing: 0.13em;
+        text-transform: uppercase; color: var(--ink-muted); margin-bottom: 3.5mm;
+        display: flex; align-items: center; gap: 8px; }
+  h2::before { content: ''; width: 3px; height: 13px; border-radius: 2px;
+                background: var(--ink-2); }
+  .panel p { font-size: 14.5px; color: var(--ink-2); margin-bottom: 2.5mm; }
+  .panel p:last-child { margin-bottom: 0; }
+  .panel strong { color: var(--ink); font-weight: 600; }
+
+  /* Class legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 3mm 6mm; margin-bottom: 4mm; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 14px;
+                  color: var(--ink-2); }
+  .dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  /* Pipeline */
+  .pipe { display: flex; flex-direction: column; gap: 2.5mm; }
+  .pstep { display: flex; gap: 3.5mm; align-items: flex-start;
+            background: var(--surface-2); border: 1px solid var(--border);
+            border-radius: 2.5mm; padding: 3mm 3.5mm; }
+  .pnum { width: 7mm; height: 7mm; flex-shrink: 0; border-radius: 2mm;
+           background: var(--surface-3); border: 1px solid var(--border-firm);
+           display: grid; place-items: center; font-size: 13px; font-weight: 700;
+           color: var(--ink-2); }
+  .pstep b { display: block; font-size: 15px; font-weight: 600; margin-bottom: 1mm; }
+  .pstep span { font-size: 13.5px; color: var(--ink-muted); line-height: 1.45; }
+
+  /* Phase cards */
+  .phases { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+  .phase { background: var(--surface-2); border: 1px solid var(--border);
+            border-radius: 2.5mm; padding: 4mm; }
+  .phase.hot { border-color: rgba(57,135,229,0.4);
+                background: linear-gradient(165deg, rgba(57,135,229,0.11),
+                            var(--surface-2) 70%); }
+  .phase h3 { font-size: 14px; font-weight: 700; margin-bottom: 2.5mm; }
+  .phase dl { display: grid; grid-template-columns: auto 1fr; gap: 1mm 3mm;
+               font-size: 12.5px; }
+  .phase dt { color: var(--ink-muted); }
+  .phase dd { color: var(--ink); text-align: right;
+               font-family: 'JetBrains Mono', monospace;
+               font-variant-numeric: tabular-nums; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: right; font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
+        text-transform: uppercase; color: var(--ink-muted);
+        padding: 0 0 2.5mm; border-bottom: 1px solid var(--border-firm); }
+  th:first-child { text-align: left; }
+  td { text-align: right; padding: 2.2mm 0; border-bottom: 1px solid var(--border);
+        font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums;
+        color: var(--ink-2); }
+  td:first-child { text-align: left; font-family: 'Inter', sans-serif;
+                    color: var(--ink); font-weight: 500; }
+  tr:last-child td { border-bottom: none; }
+  tr.total td { color: var(--ink); font-weight: 600;
+                 border-top: 1px solid var(--border-firm); }
+  .cname { display: flex; align-items: center; gap: 7px; }
+
+  /* Bottom band */
+  .band { display: grid; grid-template-columns: 2.4fr 1fr; gap: 4mm;
+           margin-top: 3.5mm; }
+  .poster > footer { padding-bottom: 0; }
+  .find { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+  .fitem { display: flex; gap: 3mm; align-items: flex-start; }
+  .fbadge { flex-shrink: 0; min-width: 14mm; text-align: center; padding: 1.6mm 1.8mm;
+             border-radius: 2mm; font-family: 'JetBrains Mono', monospace;
+             font-size: 16px; font-weight: 600; line-height: 1.15; }
+  .fbadge small { display: block; font-size: 10.5px; font-weight: 500;
+                   opacity: 0.75; font-family: 'Inter', sans-serif; }
+  .fitem p { font-size: 13px; margin: 0; line-height: 1.48; }
+
+  footer { margin-top: 3.5mm; padding-top: 3mm; border-top: 1px solid var(--border-firm);
+            display: flex; justify-content: space-between; align-items: flex-start;
+            gap: 8mm; font-size: 13px; color: var(--ink-muted); }
+  .warn { display: flex; gap: 3mm; align-items: flex-start; max-width: 190mm;
+           color: var(--warning); }
+  .warn svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px;
+               stroke: currentColor; fill: none; stroke-width: 1.8;
+               stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<div class="poster">
+
+  <header>
+    <div class="eyebrow"><span>Medical imaging &middot; Deep learning</span>
+      <span class="rule"></span><span>BRISC2025</span></div>
+    <h1>Brain tumour classification from MRI <em>using two-phase transfer learning</em></h1>
+    <p class="sub">A ResNet18 fine-tuned in two stages classifies axial brain MRI slices
+      into four categories at 97.00% test accuracy — and concentrates almost two-thirds
+      of its residual error on the one boundary that is hardest for human readers too.</p>
+    <div class="byline">
+      <span><b>Architecture</b> ResNet18, ImageNet pretrained</span>
+      <span><b>Dataset</b> BRISC2025 &middot; 6,000 scans</span>
+      <span><b>Framework</b> PyTorch &middot; torchvision &middot; Flask</span>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat lead">
+      <div class="stat-val">97.00<small>%</small></div>
+      <div class="stat-lbl">Test accuracy — 970 / 1,000 held-out scans</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">0.9715</div>
+      <div class="stat-lbl">Macro-averaged F1</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">100<small>%</small></div>
+      <div class="stat-lbl">Recall on <em>no tumour</em> — zero missed tumours</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">11.2<small>M</small></div>
+      <div class="stat-lbl">Parameters &middot; 8.4 M fine-tuned</div>
+    </div>
+  </div>
+
+  <div class="cols">
+
+    <!-- Left column -->
+    <div class="col">
+
+      <div class="panel">
+        <h2>The problem</h2>
+        <p>Tumour type must be identified before treatment can be planned, but reading MRI
+          is slow, needs scarce expertise, and varies between observers — most of all
+          between <strong>glioma</strong> and <strong>meningioma</strong>, which can look
+          alike on a single axial slice.</p>
+        <p>We classify one slice into four classes:</p>
+        <div class="legend"><div class="legend-item"><span class="dot" style="background:#3987e5"></span>Glioma</div><div class="legend-item"><span class="dot" style="background:#d95926"></span>Meningioma</div><div class="legend-item"><span class="dot" style="background:#199e70"></span>No tumour</div><div class="legend-item"><span class="dot" style="background:#9085e9"></span>Pituitary</div></div>
+        <p>5,000 training images is far too few to train an 11-million-parameter network
+          from scratch, so the whole method turns on <strong>how</strong> pretrained
+          weights are adapted.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Data</h2>
+        <table>
+          <tr><th>Split</th><th>Images</th><th>Source</th></tr>
+          <tr><td>Train</td><td>4,000</td><td>80% of train dir</td></tr>
+          <tr><td>Validation</td><td>1,000</td><td>20%, stratified</td></tr>
+          <tr><td>Test</td><td>1,000</td><td>held out</td></tr>
+          <tr class="total"><td>Total</td><td>6,000</td><td>seed 42</td></tr>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h2>Preprocessing</h2>
+        <div class="pipe">
+          <div class="pstep"><div class="pnum">1</div><div>
+            <b>Resize to 224 &times; 224</b>
+            <span>The resolution ResNet18 was pretrained at.</span></div></div>
+          <div class="pstep"><div class="pnum">2</div><div>
+            <b>Greyscale &rarr; 3 channels</b>
+            <span>Replicating the single channel lets the pretrained RGB filters apply
+              unchanged.</span></div></div>
+          <div class="pstep"><div class="pnum">3</div><div>
+            <b>Horizontal flip only</b>
+            <span>Anatomy is near-symmetric, so a flip is plausible. Rotation and jitter
+              were excluded — fabricating non-physical scans teaches artefacts, not
+              pathology.</span></div></div>
+          <div class="pstep"><div class="pnum">4</div><div>
+            <b>ImageNet normalisation</b>
+            <span>Places inputs in the distribution the pretrained weights expect.</span>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Method — why two phases</h2>
+        <p>The new 4-class head starts random. Unfreezing everything at once would push
+          large, noisy gradients back through the backbone and <strong>destroy the
+          pretrained features before they could be used</strong>. Only
+          <strong>layer4</strong> is ever unfrozen: early layers already hold generic edge
+          and texture detectors, while the deepest block holds the class semantics that
+          must move from natural images to MRI.</p>
+        <div class="phases">
+          <div class="phase">
+            <h3>Phase 1 &middot; head only</h3>
+            <dl>
+              <dt>Epochs</dt><dd>5</dd>
+              <dt>Trainable</dt><dd>2,052</dd>
+              <dt>LR (Adam)</dt><dd>1e-4</dd>
+              <dt>Backbone</dt><dd>frozen</dd>
+              <dt>Val acc</dt><dd>84.2%</dd>
+            </dl>
+          </div>
+          <div class="phase hot">
+            <h3>Phase 2 &middot; layer4 + head</h3>
+            <dl>
+              <dt>Epochs</dt><dd>15</dd>
+              <dt>Trainable</dt><dd>8,395,780</dd>
+              <dt>LR (Adam)</dt><dd>5e-5</dd>
+              <dt>Schedule</dt><dd>StepLR</dd>
+              <dt>Val acc</dt><dd>98.0%</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right column -->
+    <div class="col">
+
+      <div class="panel flush">
+        <h2>Training — validation accuracy across both phases</h2>
+        <svg viewBox="0 0 760 312" width="100%" role="img" aria-label="Validation accuracy rises from 58 percent to 98 percent over 20 epochs; unfreezing layer4 at epoch 6 produces the decisive jump.">
+<line x1="56" y1="262.0" x2="628" y2="262.0" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="44.0" y="266.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">40%</text>
+<line x1="56" y1="224.0" x2="628" y2="224.0" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="44.0" y="228.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">50%</text>
+<line x1="56" y1="186.0" x2="628" y2="186.0" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="44.0" y="190.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">60%</text>
+<line x1="56" y1="148.0" x2="628" y2="148.0" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="44.0" y="152.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">70%</text>
+<line x1="56" y1="110.0" x2="628" y2="110.0" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="44.0" y="114.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">80%</text>
+<line x1="56" y1="72.0" x2="628" y2="72.0" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="44.0" y="76.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">90%</text>
+<line x1="56" y1="34.0" x2="628" y2="34.0" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="44.0" y="38.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">100%</text>
+<line x1="56" y1="262" x2="628" y2="262" stroke="rgba(255,255,255,0.16)" stroke-width="1"/>
+<text x="56.0" y="282.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">1</text>
+<text x="176.4" y="282.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">5</text>
+<text x="326.9" y="282.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">10</text>
+<text x="477.5" y="282.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">15</text>
+<text x="628.0" y="282.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">20</text>
+<text x="342.0" y="304.0" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">Epoch</text>
+<line x1="191.5" y1="28" x2="191.5" y2="262" stroke="rgba(255,255,255,0.16)" stroke-width="1" stroke-dasharray="3 4"/>
+<text x="183.5" y="20.0" font-family="'Inter', system-ui, sans-serif" font-size="11" font-weight="500" fill="#6b7682" text-anchor="end" opacity="1.0">Phase 1 — head only</text>
+<text x="199.5" y="20.0" font-family="'Inter', system-ui, sans-serif" font-size="11" font-weight="500" fill="#e9ecef" text-anchor="start" opacity="1.0">Phase 2 — layer4 + head</text>
+<polyline points="56.0,254.9 86.1,160.7 116.2,125.4 146.3,114.6 176.4,107.7 206.5,69.3 236.6,44.3 266.7,38.4 296.8,36.7 326.9,35.7 357.1,35.4 387.2,35.4 417.3,34.1 447.4,34.4 477.5,34.6 507.6,34.4 537.7,34.3 567.8,34.4 597.9,34.3 628.0,34.3" fill="none" stroke="#7d8792" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="56.0" cy="254.9" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="86.1" cy="160.7" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="116.2" cy="125.4" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="146.3" cy="114.6" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="176.4" cy="107.7" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="206.5" cy="69.3" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="236.6" cy="44.3" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="266.7" cy="38.4" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="296.8" cy="36.7" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="326.9" cy="35.7" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="357.1" cy="35.4" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="387.2" cy="35.4" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="417.3" cy="34.1" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="447.4" cy="34.4" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="477.5" cy="34.6" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="507.6" cy="34.4" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="537.7" cy="34.3" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="567.8" cy="34.4" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="597.9" cy="34.3" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="628.0" cy="34.3" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<line x1="628.0" y1="34.3" x2="636.0" y2="14.3" stroke="#7d8792" stroke-width="1" opacity="0.55"/>
+<text x="640.0" y="18.3" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">Train</text>
+<text x="640.0" y="33.3" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="start" opacity="1.0">99.92%</text>
+<polyline points="56.0,193.2 86.1,129.4 116.2,111.5 146.3,104.3 176.4,94.0 206.5,51.9 236.6,46.5 266.7,48.1 296.8,44.3 326.9,43.1 357.1,43.9 387.2,42.0 417.3,41.2 447.4,42.0 477.5,42.4 507.6,42.7 537.7,42.4 567.8,42.7 597.9,41.2 628.0,41.6" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="56.0" cy="193.2" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="86.1" cy="129.4" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="116.2" cy="111.5" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="146.3" cy="104.3" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="176.4" cy="94.0" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="206.5" cy="51.9" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="236.6" cy="46.5" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="266.7" cy="48.1" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="296.8" cy="44.3" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="326.9" cy="43.1" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="357.1" cy="43.9" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="387.2" cy="42.0" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="417.3" cy="41.2" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="447.4" cy="42.0" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="477.5" cy="42.4" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="507.6" cy="42.7" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="537.7" cy="42.4" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="567.8" cy="42.7" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="597.9" cy="41.2" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="628.0" cy="41.6" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<line x1="628.0" y1="41.6" x2="636.0" y2="63.6" stroke="#3987e5" stroke-width="1" opacity="0.55"/>
+<text x="640.0" y="67.6" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">Validation</text>
+<text x="640.0" y="82.6" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="start" opacity="1.0">98.00%</text>
+<path d="M 206.5 59.9 L 242.7 80.8" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1"/>
+<text x="248.7" y="90.8" font-family="'Inter', system-ui, sans-serif" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">84.2% → 95.3%</text>
+<text x="248.7" y="107.8" font-family="'Inter', system-ui, sans-serif" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="start" opacity="1.0">in a single epoch, on unfreezing layer4</text>
+</svg>
+        <p style="font-size:14px;margin-top:2mm">Phase 1 plateaus at <strong>84.2%</strong>:
+          a frozen ImageNet backbone can only reach so far into a domain as distant as MRI.
+          Unfreezing <strong>layer4</strong> lifts validation accuracy to
+          <strong>95.3% in a single epoch</strong>, and past 97% by epoch 9. By epoch 13 it has
+          converged: train sits at 99.9%+ while validation holds a narrow 97.7–98.1% band.</p>
+      </div>
+
+      <div class="panel flush">
+        <h2>Results — per-class F1 on the held-out test set</h2>
+        <svg viewBox="0 0 760 240" width="100%" role="img" aria-label="Per-class F1: pituitary 0.988, no tumour 0.986, meningioma 0.956, glioma 0.956.">
+<line x1="118.0" y1="14" x2="118.0" y2="188" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="118.0" y="208.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">0.90</text>
+<line x1="229.6" y1="14" x2="229.6" y2="188" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="229.6" y="208.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">0.92</text>
+<line x1="341.2" y1="14" x2="341.2" y2="188" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="341.2" y="208.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">0.94</text>
+<line x1="452.8" y1="14" x2="452.8" y2="188" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="452.8" y="208.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">0.96</text>
+<line x1="564.4" y1="14" x2="564.4" y2="188" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="564.4" y="208.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">0.98</text>
+<line x1="676.0" y1="14" x2="676.0" y2="188" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="676.0" y="208.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">1.00</text>
+<text x="397.0" y="228.0" font-family="'Inter', system-ui, sans-serif" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">F1 score  (axis starts at 0.90)</text>
+<text x="104.0" y="46.8" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">Pituitary</text>
+<rect x="118" y="32.8" width="558" height="20" rx="4" fill="rgba(255,255,255,0.045)"/>
+<rect x="118" y="32.8" width="493.3" height="20" rx="4" fill="#9085e9"/>
+<text x="623.3" y="46.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">0.9884</text>
+<text x="104.0" y="61.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 300</text>
+<text x="104.0" y="88.2" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">No tumour</text>
+<rect x="118" y="74.2" width="558" height="20" rx="4" fill="rgba(255,255,255,0.045)"/>
+<rect x="118" y="74.2" width="479.3" height="20" rx="4" fill="#199e70"/>
+<text x="609.3" y="88.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">0.9859</text>
+<text x="104.0" y="103.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 140</text>
+<text x="104.0" y="129.8" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">Meningioma</text>
+<rect x="118" y="115.8" width="558" height="20" rx="4" fill="rgba(255,255,255,0.045)"/>
+<rect x="118" y="115.8" width="313.6" height="20" rx="4" fill="#d95926"/>
+<text x="443.6" y="129.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">0.9562</text>
+<text x="104.0" y="144.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 306</text>
+<text x="104.0" y="171.2" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">Glioma</text>
+<rect x="118" y="157.2" width="558" height="20" rx="4" fill="rgba(255,255,255,0.045)"/>
+<rect x="118" y="157.2" width="310.2" height="20" rx="4" fill="#3987e5"/>
+<text x="440.2" y="171.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">0.9556</text>
+<text x="104.0" y="186.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 254</text>
+</svg>
+        <p style="font-size:14px;margin-top:1mm">Glioma and meningioma trail together —
+          the first sign they are being confused with <em>each other</em> rather than
+          failing independently. Macro and weighted F1 agree to within
+          <strong>0.002</strong>, so the headline is not an artefact of class
+          imbalance.</p>
+      </div>
+
+      <div class="panel flush">
+        <h2>Confusion matrix — 30 errors in 1,000 scans</h2>
+        <svg viewBox="0 0 760 338" width="100%" role="img" aria-label="Confusion matrix. 19 of 30 total errors sit on the glioma-meningioma boundary; no tumour has perfect recall.">
+<text x="395.0" y="22.0" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="500" fill="#6b7682" text-anchor="middle" opacity="1.0">Predicted</text>
+<text x="22" y="163.0" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="500" fill="#6b7682" text-anchor="middle" transform="rotate(-90 22 163.0)">Actual</text>
+<text x="193.2" y="36.0" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="500" fill="#9aa4af" text-anchor="middle" opacity="1.0">Glioma</text>
+<text x="327.8" y="36.0" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="500" fill="#9aa4af" text-anchor="middle" opacity="1.0">Meningioma</text>
+<text x="462.2" y="36.0" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="500" fill="#9aa4af" text-anchor="middle" opacity="1.0">No tumour</text>
+<text x="596.8" y="36.0" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="500" fill="#9aa4af" text-anchor="middle" opacity="1.0">Pituitary</text>
+<text x="112.0" y="79.2" font-family="'Inter', system-ui, sans-serif" font-size="12.5" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">Glioma</text>
+<text x="112.0" y="95.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 254</text>
+<rect x="127.0" y="51.0" width="132.5" height="54.5" rx="5" fill="#86b6ef"/>
+<text x="193.2" y="80.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="600" fill="#0b1220" text-anchor="middle" opacity="1.0">237</text>
+<text x="193.2" y="98.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#0b1220" text-anchor="middle" opacity="0.78">93.3%</text>
+<rect x="261.5" y="51.0" width="132.5" height="54.5" rx="5" fill="#184f95"/>
+<text x="327.8" y="80.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#ffffff" text-anchor="middle" opacity="1.0">14</text>
+<text x="327.8" y="98.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#ffffff" text-anchor="middle" opacity="0.78">5.5%</text>
+<rect x="396.0" y="51.0" width="132.5" height="54.5" rx="5" fill="#121820" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="462.2" y="80.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#6b7682" text-anchor="middle" opacity="1.0">0</text>
+<text x="462.2" y="98.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="0.78">0.0%</text>
+<rect x="530.5" y="51.0" width="132.5" height="54.5" rx="5" fill="#0d366b"/>
+<text x="596.8" y="80.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#cde2fb" text-anchor="middle" opacity="1.0">3</text>
+<text x="596.8" y="98.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#cde2fb" text-anchor="middle" opacity="0.78">1.2%</text>
+<text x="680.0" y="83.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">93.3%</text>
+<text x="112.0" y="135.8" font-family="'Inter', system-ui, sans-serif" font-size="12.5" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">Meningioma</text>
+<text x="112.0" y="151.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 306</text>
+<rect x="127.0" y="107.5" width="132.5" height="54.5" rx="5" fill="#0d366b"/>
+<text x="193.2" y="136.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#cde2fb" text-anchor="middle" opacity="1.0">5</text>
+<text x="193.2" y="154.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#cde2fb" text-anchor="middle" opacity="0.78">1.6%</text>
+<rect x="261.5" y="107.5" width="132.5" height="54.5" rx="5" fill="#86b6ef"/>
+<text x="327.8" y="136.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="600" fill="#0b1220" text-anchor="middle" opacity="1.0">295</text>
+<text x="327.8" y="154.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#0b1220" text-anchor="middle" opacity="0.78">96.4%</text>
+<rect x="396.0" y="107.5" width="132.5" height="54.5" rx="5" fill="#0d366b"/>
+<text x="462.2" y="136.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#cde2fb" text-anchor="middle" opacity="1.0">4</text>
+<text x="462.2" y="154.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#cde2fb" text-anchor="middle" opacity="0.78">1.3%</text>
+<rect x="530.5" y="107.5" width="132.5" height="54.5" rx="5" fill="#0d366b"/>
+<text x="596.8" y="136.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#cde2fb" text-anchor="middle" opacity="1.0">2</text>
+<text x="596.8" y="154.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#cde2fb" text-anchor="middle" opacity="0.78">0.7%</text>
+<text x="680.0" y="139.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">96.4%</text>
+<text x="112.0" y="192.2" font-family="'Inter', system-ui, sans-serif" font-size="12.5" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">No tumour</text>
+<text x="112.0" y="208.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 140</text>
+<rect x="127.0" y="164.0" width="132.5" height="54.5" rx="5" fill="#121820" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="193.2" y="193.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#6b7682" text-anchor="middle" opacity="1.0">0</text>
+<text x="193.2" y="211.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="0.78">0.0%</text>
+<rect x="261.5" y="164.0" width="132.5" height="54.5" rx="5" fill="#121820" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="327.8" y="193.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#6b7682" text-anchor="middle" opacity="1.0">0</text>
+<text x="327.8" y="211.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="0.78">0.0%</text>
+<rect x="396.0" y="164.0" width="132.5" height="54.5" rx="5" fill="#86b6ef"/>
+<text x="462.2" y="193.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="600" fill="#0b1220" text-anchor="middle" opacity="1.0">140</text>
+<text x="462.2" y="211.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#0b1220" text-anchor="middle" opacity="0.78">100.0%</text>
+<rect x="530.5" y="164.0" width="132.5" height="54.5" rx="5" fill="#121820" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="596.8" y="193.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#6b7682" text-anchor="middle" opacity="1.0">0</text>
+<text x="596.8" y="211.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="0.78">0.0%</text>
+<text x="680.0" y="196.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">100.0%</text>
+<text x="112.0" y="248.8" font-family="'Inter', system-ui, sans-serif" font-size="12.5" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">Pituitary</text>
+<text x="112.0" y="264.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 300</text>
+<rect x="127.0" y="220.5" width="132.5" height="54.5" rx="5" fill="#121820" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="193.2" y="249.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#6b7682" text-anchor="middle" opacity="1.0">0</text>
+<text x="193.2" y="267.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="0.78">0.0%</text>
+<rect x="261.5" y="220.5" width="132.5" height="54.5" rx="5" fill="#0d366b"/>
+<text x="327.8" y="249.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#cde2fb" text-anchor="middle" opacity="1.0">2</text>
+<text x="327.8" y="267.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#cde2fb" text-anchor="middle" opacity="0.78">0.7%</text>
+<rect x="396.0" y="220.5" width="132.5" height="54.5" rx="5" fill="#121820" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="462.2" y="249.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#6b7682" text-anchor="middle" opacity="1.0">0</text>
+<text x="462.2" y="267.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="0.78">0.0%</text>
+<rect x="530.5" y="220.5" width="132.5" height="54.5" rx="5" fill="#86b6ef"/>
+<text x="596.8" y="249.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="600" fill="#0b1220" text-anchor="middle" opacity="1.0">298</text>
+<text x="596.8" y="267.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#0b1220" text-anchor="middle" opacity="0.78">99.3%</text>
+<text x="680.0" y="252.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">99.3%</text>
+<text x="680.0" y="36.0" font-family="'Inter', system-ui, sans-serif" font-size="11.5" font-weight="500" fill="#6b7682" text-anchor="start" opacity="1.0">Recall</text>
+<text x="126.0" y="314.0" font-family="'Inter', system-ui, sans-serif" font-size="11" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">Share of row</text>
+<rect x="136" y="302" width="26" height="12" rx="2" fill="#121820"/>
+<rect x="164" y="302" width="26" height="12" rx="2" fill="#0d366b"/>
+<rect x="192" y="302" width="26" height="12" rx="2" fill="#184f95"/>
+<rect x="220" y="302" width="26" height="12" rx="2" fill="#256abf"/>
+<rect x="248" y="302" width="26" height="12" rx="2" fill="#2a78d6"/>
+<rect x="276" y="302" width="26" height="12" rx="2" fill="#3987e5"/>
+<rect x="304" y="302" width="26" height="12" rx="2" fill="#86b6ef"/>
+<text x="136.0" y="330.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="start" opacity="1.0">0%</text>
+<text x="330.0" y="330.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">100%</text>
+</svg>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="band">
+    <div class="panel">
+      <h2>What the errors say</h2>
+      <div class="find">
+        <div class="fitem">
+          <div class="fbadge" style="background:rgba(217,89,38,0.16);color:#f0885c">
+            63%<small>of errors</small></div>
+          <p><strong>Glioma &harr; meningioma is the one real weakness.</strong> 19 of 30
+            errors sit on this pair — also the hardest call for human readers on a single
+            slice. The model fails where the task is genuinely ambiguous, not at
+            random.</p>
+        </div>
+        <div class="fitem">
+          <div class="fbadge" style="background:rgba(25,158,112,0.16);color:#2fbf8d">
+            0<small>missed</small></div>
+          <p><strong>Perfect recall on <em>no tumour</em>.</strong> No scan containing a
+            tumour was called tumour-free. This class's four errors all run the safe way,
+            so false negatives — the costliest error in screening — did not occur.</p>
+        </div>
+        <div class="fitem">
+          <div class="fbadge" style="background:rgba(144,133,233,0.16);color:#a79ef0">
+            99.3%<small>recall</small></div>
+          <p><strong>Pituitary is nearly separable.</strong> Two errors in 300. These
+            tumours sit at a distinctive skull-base location, giving the network a
+            positional cue the other tumour types do not offer.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Limits &amp; next steps</h2>
+      <p><strong>Limits.</strong> One slice, not the volume. No localisation. A single
+        dataset, so cross-scanner generalisation is unmeasured. Confidence is raw softmax
+        and uncalibrated.</p>
+      <p><strong>Next.</strong> Target the glioma/meningioma boundary with a focal loss or
+        a second-stage binary head; add Grad-CAM; validate externally; aggregate across
+        the slices of a study.</p>
+    </div>
+  </div>
+
+  <footer>
+    <div class="warn">
+      <svg viewBox="0 0 24 24"><path d="M10.3 3.9 2.6 17.1A2 2 0 0 0 4.3 20h15.4a2 2 0
+        0 0 1.7-2.9L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4.5M12 17h.01"/></svg>
+      <span>Research and educational use only — not a medical device, and not validated
+        for clinical diagnosis.</span>
+    </div>
+    <span class="mono">NeuraScan &middot; ResNet18 &middot; 97.00% test accuracy</span>
+  </footer>
+
+</div>
+</body>
+</html>
