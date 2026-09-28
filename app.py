@@ -54,7 +54,11 @@ CORS(app)
 
 @app.route('/')
 def index():
-    with open(os.path.join(os.path.dirname(__file__), 'templates', 'index.html'), 'r') as f:
+    # Read as UTF-8 explicitly. Without it Python uses the locale codec, which on
+    # Windows is cp1252 — that mangles the page's non-ASCII characters, and throws
+    # UnicodeDecodeError outright on any byte cp1252 has no mapping for.
+    index_path = os.path.join(os.path.dirname(__file__), 'templates', 'index.html')
+    with open(index_path, encoding='utf-8') as f:
         return f.read()
 
 
