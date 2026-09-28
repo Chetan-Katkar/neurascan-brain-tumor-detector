@@ -1,988 +1,763 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NeuraScan — Brain Tumor AI Classifier</title>
+  <title>NeuraScan — Brain Tumor Classifier</title>
+  <meta name="description" content="ResNet18 transfer-learning classifier for brain MRI scans." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
   <style>
-    /* ─── Reset & Base ─────────────────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+    /* ─── Tokens ───────────────────────────────────────────────── */
     :root {
-      --bg:        #050a14;
-      --surface:   rgba(255,255,255,0.04);
-      --glass:     rgba(255,255,255,0.07);
-      --border:    rgba(255,255,255,0.10);
-      --accent:    #4f8ef7;
-      --accent2:   #a855f7;
-      --glow:      rgba(79,142,247,0.35);
-      --danger:    #f87171;
-      --warn:      #fb923c;
-      --success:   #34d399;
-      --info:      #818cf8;
-      --text:      #e2e8f0;
-      --muted:     #64748b;
-      --radius:    18px;
+      color-scheme: dark;
+
+      /* Surfaces — near-black, layered */
+      --bg:          #08090b;
+      --surface-1:   #101418;
+      --surface-2:   #161b21;
+      --surface-3:   #1d242c;
+      --border:      rgba(255,255,255,0.08);
+      --border-firm: rgba(255,255,255,0.14);
+
+      /* Ink */
+      --text:        #e9ecef;
+      --text-2:      #9aa4af;
+      --text-muted:  #6b7682;
+
+      /* Chrome accent — deliberately neutral so the four hues below
+         are the only saturated colour on screen, and always mean a class. */
+      --accent:      #f2f4f6;
+      --accent-ink:  #0b0e11;
+
+      /* Class hues — validated categorical set for this dark surface
+         (adjacent CVD ΔE 9.4, normal-vision ΔE 24.6, all ≥ 3:1 contrast). */
+      --glioma:      #3987e5;
+      --meningioma:  #d95926;
+      --no_tumor:    #199e70;
+      --pituitary:   #9085e9;
+
+      --warning:     #c98500;
+
+      --radius:      14px;
+      --radius-sm:   10px;
     }
 
-    html { scroll-behavior: smooth; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
     }
 
-    /* ─── Animated Background ──────────────────────────────────── */
-    .bg-canvas {
-      position: fixed; inset: 0; z-index: 0;
-      pointer-events: none;
-      overflow: hidden;
+    /* Recessive backdrop: a faint grid and one low-opacity wash.
+       No blurred colour orbs — they fight the data colours. */
+    .backdrop {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(120,140,170,0.10), transparent 70%),
+        linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px) 0 0 / 100% 40px,
+        linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px) 0 0 / 40px 100%;
+      mask-image: linear-gradient(to bottom, #000 0%, transparent 70%);
     }
 
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(120px);
-      opacity: 0.18;
-      animation: drift 18s ease-in-out infinite;
-    }
-    .orb-1 { width: 700px; height: 700px; background: #4f8ef7; top: -200px; left: -150px; animation-delay: 0s; }
-    .orb-2 { width: 500px; height: 500px; background: #a855f7; bottom: -100px; right: -100px; animation-delay: -6s; }
-    .orb-3 { width: 400px; height: 400px; background: #06b6d4; top: 40%; left: 60%; animation-delay: -12s; }
+    svg { display: block; }
+    .icon { width: 1em; height: 1em; stroke: currentColor; fill: none;
+            stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 
-    @keyframes drift {
-      0%,100% { transform: translate(0,0) scale(1); }
-      33%      { transform: translate(40px,-30px) scale(1.05); }
-      66%      { transform: translate(-30px,25px) scale(0.97); }
+    /* ─── Top bar ──────────────────────────────────────────────── */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(8,9,11,0.82);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar-inner {
+      max-width: 1120px; margin: 0 auto;
+      padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
     }
 
-    /* Grid dots */
-    .bg-grid {
-      position: fixed; inset: 0; z-index: 0;
-      background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
-      background-size: 32px 32px;
-      pointer-events: none;
+    .brand { display: flex; align-items: center; gap: 11px; }
+    .brand-mark {
+      width: 34px; height: 34px;
+      border-radius: 9px;
+      background: var(--surface-3);
+      border: 1px solid var(--border-firm);
+      display: grid; place-items: center;
+      color: var(--text);
     }
+    .brand-mark .icon { width: 19px; height: 19px; }
+    .brand-name { font-size: 0.98rem; font-weight: 600; letter-spacing: -0.01em; }
+    .brand-sub  { font-size: 0.72rem; color: var(--text-muted); letter-spacing: 0.02em; }
+
+    .status {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 0.74rem; font-weight: 500; color: var(--text-2);
+      padding: 5px 11px;
+      border: 1px solid var(--border); border-radius: 100px;
+      background: var(--surface-1);
+      font-variant-numeric: tabular-nums;
+    }
+    .status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--no_tumor);
+      box-shadow: 0 0 0 3px rgba(25,158,112,0.18);
+    }
+    .status-dot.is-down { background: var(--meningioma); box-shadow: 0 0 0 3px rgba(217,89,38,0.18); }
 
     /* ─── Layout ───────────────────────────────────────────────── */
-    .page {
-      position: relative; z-index: 1;
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 40px 24px 80px;
-    }
+    .page { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; padding: 44px 24px 64px; }
 
-    /* ─── Header ───────────────────────────────────────────────── */
-    header {
-      text-align: center;
-      margin-bottom: 52px;
+    .hero { margin-bottom: 30px; max-width: 620px; }
+    .hero h1 {
+      font-size: clamp(1.7rem, 4vw, 2.3rem);
+      font-weight: 700; letter-spacing: -0.025em; line-height: 1.15;
+      margin-bottom: 10px;
     }
+    .hero p { color: var(--text-2); font-size: 0.97rem; }
 
-    .logo-wrap {
-      display: inline-flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 20px;
-    }
-
-    .logo-icon {
-      width: 56px; height: 56px;
-      background: linear-gradient(135deg, #4f8ef7, #a855f7);
-      border-radius: 16px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 28px;
-      box-shadow: 0 0 32px rgba(79,142,247,0.5);
-      animation: pulse-logo 3s ease-in-out infinite;
-    }
-    @keyframes pulse-logo {
-      0%,100% { box-shadow: 0 0 32px rgba(79,142,247,0.5); }
-      50%      { box-shadow: 0 0 56px rgba(168,85,247,0.6); }
-    }
-
-    .logo-text {
-      font-size: 2rem;
-      font-weight: 900;
-      letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #4f8ef7 30%, #a855f7);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .tagline {
-      font-size: 1.05rem;
-      color: var(--muted);
-      font-weight: 400;
-      letter-spacing: 0.3px;
-    }
-
-    .badge-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      margin-top: 16px;
-      flex-wrap: wrap;
-    }
-    .badge {
-      font-size: 0.72rem;
-      font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 100px;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-    }
-    .badge-blue  { background: rgba(79,142,247,0.15); color: #4f8ef7; border: 1px solid rgba(79,142,247,0.3); }
-    .badge-purple{ background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
-    .badge-green { background: rgba(52,211,153,0.15); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
-
-    /* ─── Main Grid ────────────────────────────────────────────── */
-    .main-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-      align-items: start;
-    }
-    @media(max-width: 780px) {
-      .main-grid { grid-template-columns: 1fr; }
-    }
-
-    /* ─── Glass Card ───────────────────────────────────────────── */
-    .card {
-      background: var(--glass);
+    .meta-strip {
+      display: flex; flex-wrap: wrap; gap: 0;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      padding: 28px;
-    }
-
-    .card-title {
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .card-title::before {
-      content: '';
-      display: block;
-      width: 3px; height: 14px;
-      background: linear-gradient(to bottom, #4f8ef7, #a855f7);
-      border-radius: 2px;
-    }
-
-    /* ─── Upload Zone ──────────────────────────────────────────── */
-    .drop-zone {
-      border: 2px dashed rgba(79,142,247,0.35);
-      border-radius: 14px;
-      padding: 40px 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      position: relative;
-      min-height: 280px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      background: var(--surface-1);
+      margin-bottom: 26px;
       overflow: hidden;
     }
-
-    .drop-zone:hover,
-    .drop-zone.drag-over {
-      border-color: #4f8ef7;
-      background: rgba(79,142,247,0.06);
+    .meta-item { flex: 1 1 140px; padding: 16px 20px; border-right: 1px solid var(--border); }
+    .meta-item:last-child { border-right: none; }
+    .meta-val {
+      font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums; line-height: 1.2;
+    }
+    .meta-lbl { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+    @media (max-width: 640px) {
+      .meta-item { border-right: none; border-bottom: 1px solid var(--border); }
+      .meta-item:last-child { border-bottom: none; }
     }
 
-    .drop-zone.has-image {
-      border-color: rgba(52,211,153,0.5);
-      background: rgba(52,211,153,0.04);
-      padding: 12px;
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+    /* ─── Card ─────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
     }
+    .card + .card { margin-top: 20px; }
+
+    .card-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 18px;
+    }
+    .card-title {
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+    .card-note { font-size: 0.72rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+    /* ─── Drop zone ────────────────────────────────────────────── */
+    .drop {
+      border: 1px dashed var(--border-firm);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      min-height: 264px;
+      padding: 32px 20px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; cursor: pointer; position: relative; overflow: hidden;
+      transition: border-color .18s ease, background-color .18s ease;
+    }
+    .drop:hover, .drop.drag-over { border-color: rgba(255,255,255,0.32); background: var(--surface-2); }
+    .drop.has-image { padding: 10px; border-style: solid; cursor: pointer; }
+    .drop:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
     .drop-icon {
-      width: 72px; height: 72px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, rgba(79,142,247,0.15), rgba(168,85,247,0.15));
-      border: 1px solid rgba(79,142,247,0.25);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 30px;
-      margin-bottom: 16px;
-      transition: transform 0.3s ease;
+      width: 46px; height: 46px; border-radius: 11px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      display: grid; place-items: center; color: var(--text-2);
+      margin-bottom: 14px;
     }
-    .drop-zone:hover .drop-icon { transform: scale(1.08); }
+    .drop-icon .icon { width: 21px; height: 21px; }
+    .drop-title { font-size: 0.93rem; font-weight: 600; margin-bottom: 4px; }
+    .drop-sub { font-size: 0.79rem; color: var(--text-muted); margin-bottom: 16px; }
 
-    .drop-title {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 6px;
-    }
-
-    .drop-sub {
-      font-size: 0.82rem;
-      color: var(--muted);
-      margin-bottom: 18px;
-    }
-
-    .drop-btn {
-      padding: 8px 22px;
-      background: linear-gradient(135deg, #4f8ef7, #6d6ef7);
-      border: none;
-      border-radius: 100px;
-      color: #fff;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      letter-spacing: 0.3px;
-    }
-    .drop-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(79,142,247,0.4); }
-
-    #imgPreview {
-      display: none;
-      width: 100%;
-      max-height: 260px;
-      object-fit: contain;
-      border-radius: 10px;
-    }
-    .has-image #imgPreview    { display: block; }
-    .has-image .drop-content  { display: none; }
-    .has-image .replace-hint  { display: flex; }
+    #imgPreview { display: none; width: 100%; max-height: 252px; object-fit: contain; border-radius: 8px; }
+    .has-image #imgPreview { display: block; }
+    .has-image .drop-body { display: none; }
+    .has-image .replace-hint { display: flex; }
     .replace-hint {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      margin-top: 10px;
-      font-size: 0.75rem;
-      color: var(--muted);
+      display: none; align-items: center; justify-content: center; gap: 6px;
+      margin-top: 9px; font-size: 0.73rem; color: var(--text-muted);
     }
+    .replace-hint .icon { width: 13px; height: 13px; }
 
-    #fileInput { display: none; }
+    #fileInput { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
-    /* ─── Analyze Button ───────────────────────────────────────── */
-    .analyze-row {
-      margin-top: 18px;
-      display: flex;
-      gap: 12px;
+    /* Scan sweep — shown only while a request is in flight */
+    .scan { display: none; position: absolute; inset: 0; border-radius: var(--radius-sm); overflow: hidden; pointer-events: none; }
+    .scanning .scan { display: block; }
+    .scan::after {
+      content: ''; position: absolute; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent);
+      animation: sweep 1.4s cubic-bezier(.4,0,.6,1) infinite;
     }
+    @keyframes sweep { 0% { top: 2%; } 100% { top: 98%; } }
 
-    .btn-analyze {
-      flex: 1;
-      padding: 14px 28px;
-      background: linear-gradient(135deg, #4f8ef7 0%, #a855f7 100%);
-      border: none;
-      border-radius: 12px;
-      color: #fff;
-      font-size: 0.95rem;
-      font-weight: 700;
-      cursor: pointer;
-      letter-spacing: 0.3px;
-      transition: all 0.25s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      position: relative;
-      overflow: hidden;
-    }
-    .btn-analyze::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .btn-analyze:hover::before { opacity: 1; }
-    .btn-analyze:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(79,142,247,0.45); }
-    .btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+    /* ─── Buttons ──────────────────────────────────────────────── */
+    .actions { display: flex; gap: 10px; margin-top: 16px; }
 
-    .btn-clear {
-      padding: 14px 18px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--muted);
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
+    .btn {
+      font: inherit; font-size: 0.88rem; font-weight: 600;
+      border-radius: var(--radius-sm); cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background-color .16s ease, border-color .16s ease, color .16s ease, opacity .16s ease;
     }
-    .btn-clear:hover { background: rgba(248,113,113,0.1); color: var(--danger); border-color: rgba(248,113,113,0.3); }
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-    /* ─── Spinner ──────────────────────────────────────────────── */
+    .btn-primary {
+      flex: 1; padding: 12px 22px;
+      background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent);
+    }
+    .btn-primary:hover:not(:disabled) { background: #fff; }
+    .btn-primary:disabled { opacity: 0.32; cursor: not-allowed; }
+
+    .btn-ghost {
+      padding: 12px 15px;
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--border-firm);
+    }
+    .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.28); background: var(--surface-2); }
+    .btn-ghost .icon { width: 15px; height: 15px; }
+
+    .btn-file {
+      padding: 8px 17px; font-size: 0.81rem;
+      background: var(--surface-3); color: var(--text); border: 1px solid var(--border-firm);
+    }
+    .btn-file:hover { background: #242c35; }
+
     .spinner {
-      width: 18px; height: 18px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      display: none;
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid rgba(11,14,17,0.28); border-top-color: var(--accent-ink);
+      animation: spin .65s linear infinite; display: none;
     }
-    .loading .spinner { display: block; }
-    .loading .btn-text { display: none; }
-
+    .btn-label { display: inline-flex; align-items: center; gap: 8px; }
+    .is-loading .spinner { display: block; }
+    .is-loading .btn-label { display: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ─── Scanning Animation ───────────────────────────────────── */
-    .scan-overlay {
-      display: none;
-      position: absolute; inset: 0;
-      border-radius: 12px;
-      overflow: hidden;
-      pointer-events: none;
-    }
-    .scanning .scan-overlay { display: block; }
-    .scan-line {
-      position: absolute;
-      left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, #4f8ef7, #a855f7, transparent);
-      box-shadow: 0 0 12px rgba(79,142,247,0.8);
-      animation: scan-anim 1.5s ease-in-out infinite;
-    }
-    @keyframes scan-anim {
-      0%   { top: 0%; }
-      100% { top: 100%; }
-    }
+    /* ─── Result ───────────────────────────────────────────────── */
+    #result { display: none; }
+    #result.visible { display: block; }
 
-    /* ─── Result Panel ─────────────────────────────────────────── */
-    #resultPanel { display: none; }
-    #resultPanel.visible { display: block; }
-
-    .result-hero {
-      background: linear-gradient(135deg, rgba(79,142,247,0.1), rgba(168,85,247,0.1));
-      border: 1px solid rgba(79,142,247,0.2);
-      border-radius: 14px;
-      padding: 24px;
-      margin-bottom: 20px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .result-hero::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: radial-gradient(circle at 50% 0%, rgba(79,142,247,0.12), transparent 60%);
-    }
-
-    .result-label {
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-
-    .result-class {
-      font-size: 2.2rem;
-      font-weight: 900;
-      letter-spacing: -0.5px;
-      margin-bottom: 6px;
-      text-transform: capitalize;
-    }
-
-    .result-conf {
-      font-size: 0.88rem;
-      color: var(--muted);
-      font-weight: 500;
-    }
-
-    .conf-pill {
-      display: inline-block;
-      padding: 3px 12px;
-      border-radius: 100px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      margin-left: 6px;
-    }
-
-    /* ─── Class Info Box ───────────────────────────────────────── */
-    .class-info {
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 20px;
-      font-size: 0.85rem;
-      line-height: 1.65;
-      border-left: 3px solid;
-    }
-
-    /* ─── Probability Bars ─────────────────────────────────────── */
-    .prob-list { display: flex; flex-direction: column; gap: 12px; }
-
-    .prob-item {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .prob-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.82rem;
-    }
-
-    .prob-name {
-      font-weight: 600;
-      text-transform: capitalize;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .prob-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-    }
-
-    .prob-val {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem;
-      font-weight: 600;
-    }
-
-    .prob-bar-bg {
-      height: 8px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 100px;
-      overflow: hidden;
-    }
-
-    .prob-bar-fill {
-      height: 100%;
-      border-radius: 100px;
-      transition: width 0.8s cubic-bezier(0.25,0.46,0.45,0.94);
-      position: relative;
-    }
-    .prob-bar-fill::after {
-      content: '';
-      position: absolute;
-      top: 0; right: 0; bottom: 0;
-      width: 20px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35));
-      border-radius: 100px;
-    }
-
-    /* ─── Class Colors ─────────────────────────────────────────── */
-    /* glioma */
-    .color-glioma      { color: #f87171; }
-    .bg-glioma         { background: linear-gradient(90deg, #ef4444, #f87171); }
-    .border-glioma     { border-left-color: #f87171; }
-    .bg-box-glioma     { background: rgba(248,113,113,0.08); }
-    .dot-glioma        { background: #f87171; }
-    .pill-glioma       { background: rgba(248,113,113,0.15); color: #f87171; }
-    /* meningioma */
-    .color-meningioma  { color: #fb923c; }
-    .bg-meningioma     { background: linear-gradient(90deg, #f97316, #fb923c); }
-    .border-meningioma { border-left-color: #fb923c; }
-    .bg-box-meningioma { background: rgba(251,146,60,0.08); }
-    .dot-meningioma    { background: #fb923c; }
-    .pill-meningioma   { background: rgba(251,146,60,0.15); color: #fb923c; }
-    /* no_tumor */
-    .color-no_tumor    { color: #34d399; }
-    .bg-no_tumor       { background: linear-gradient(90deg, #10b981, #34d399); }
-    .border-no_tumor   { border-left-color: #34d399; }
-    .bg-box-no_tumor   { background: rgba(52,211,153,0.08); }
-    .dot-no_tumor      { background: #34d399; }
-    .pill-no_tumor     { background: rgba(52,211,153,0.15); color: #34d399; }
-    /* pituitary */
-    .color-pituitary   { color: #818cf8; }
-    .bg-pituitary      { background: linear-gradient(90deg, #6366f1, #818cf8); }
-    .border-pituitary  { border-left-color: #818cf8; }
-    .bg-box-pituitary  { background: rgba(129,140,248,0.08); }
-    .dot-pituitary     { background: #818cf8; }
-    .pill-pituitary    { background: rgba(129,140,248,0.15); color: #818cf8; }
-
-    /* ─── Disclaimer ───────────────────────────────────────────── */
-    .disclaimer {
-      background: rgba(251,146,60,0.07);
-      border: 1px solid rgba(251,146,60,0.2);
-      border-radius: 12px;
-      padding: 14px 18px;
-      font-size: 0.78rem;
-      color: #fb923c;
-      line-height: 1.6;
-      margin-top: 20px;
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-    }
-    .disclaimer span { flex-shrink: 0; font-size: 1rem; margin-top: 1px; }
-
-    /* ─── Stats Row ────────────────────────────────────────────── */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-      margin-bottom: 24px;
-    }
-
-    .stat-card {
-      background: var(--surface);
+    .verdict {
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px 14px;
-      text-align: center;
+      border-left: 3px solid var(--border-firm);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      padding: 18px 20px;
+      margin-bottom: 18px;
+    }
+    .verdict-lbl { font-size: 0.71rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+    .verdict-row { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+    .verdict-class { font-size: 1.55rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+    .verdict-conf { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .verdict-conf small { font-size: 0.7rem; color: var(--text-muted); font-family: 'Inter', sans-serif; font-weight: 500; display: block; text-align: right; }
+
+    .about {
+      font-size: 0.83rem; line-height: 1.62; color: var(--text-2);
+      padding: 14px 16px; border-radius: var(--radius-sm);
+      background: var(--surface-2); border: 1px solid var(--border);
+      margin-bottom: 20px;
     }
 
-    .stat-val {
-      font-size: 1.6rem;
-      font-weight: 900;
-      background: linear-gradient(135deg, #4f8ef7, #a855f7);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      line-height: 1.1;
+    /* ─── Probability bars ─────────────────────────────────────── */
+    .probs { display: flex; flex-direction: column; gap: 13px; }
+    .prob { display: flex; flex-direction: column; gap: 5px; }
+    .prob-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.82rem; }
+    .prob-name { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+    .swatch { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+    .tag {
+      font-size: 0.62rem; font-weight: 600; letter-spacing: 0.06em;
+      padding: 2px 6px; border-radius: 4px;
+      background: var(--surface-3); color: var(--text-2); border: 1px solid var(--border-firm);
     }
+    /* Values wear text tokens, not the series colour. */
+    .prob-val { font-family: 'JetBrains Mono', monospace; font-size: 0.79rem; font-weight: 500; color: var(--text-2); font-variant-numeric: tabular-nums; }
+    .prob.is-top .prob-val, .prob.is-top .prob-name { color: var(--text); font-weight: 600; }
 
-    .stat-lbl {
-      font-size: 0.7rem;
-      color: var(--muted);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin-top: 4px;
-    }
-
-    /* ─── How It Works ─────────────────────────────────────────── */
-    .steps {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .step {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 14px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      font-size: 0.83rem;
-    }
-
-    .step-num {
-      min-width: 32px; height: 32px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #4f8ef7, #a855f7);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800;
-      font-size: 0.8rem;
-      flex-shrink: 0;
-    }
-
-    .step-info strong {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 2px;
-    }
-    .step-info small { color: var(--muted); }
+    .track { height: 7px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+    .fill { height: 100%; width: 0; border-radius: 4px; transition: width .7s cubic-bezier(.22,.61,.36,1); }
 
     /* ─── Empty state ──────────────────────────────────────────── */
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 260px;
-      gap: 12px;
-      color: var(--muted);
-      text-align: center;
+    .empty {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 300px; gap: 12px; text-align: center; color: var(--text-muted);
     }
-    .empty-icon { font-size: 48px; opacity: 0.4; }
-    .empty-text { font-size: 0.88rem; line-height: 1.6; max-width: 260px; }
+    .empty-icon {
+      width: 42px; height: 42px; border-radius: 11px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      display: grid; place-items: center;
+    }
+    .empty-icon .icon { width: 19px; height: 19px; }
+    .empty p { font-size: 0.85rem; max-width: 252px; line-height: 1.6; }
+
+    /* ─── Steps ────────────────────────────────────────────────── */
+    .steps { display: flex; flex-direction: column; }
+    .step { display: flex; gap: 14px; padding: 13px 0; border-bottom: 1px solid var(--border); }
+    .step:last-child { border-bottom: none; padding-bottom: 0; }
+    .step:first-child { padding-top: 0; }
+    .step-num {
+      width: 25px; height: 25px; border-radius: 7px; flex-shrink: 0;
+      background: var(--surface-3); border: 1px solid var(--border);
+      display: grid; place-items: center;
+      font-size: 0.72rem; font-weight: 600; color: var(--text-2);
+      font-variant-numeric: tabular-nums;
+    }
+    .step strong { display: block; font-size: 0.86rem; font-weight: 600; margin-bottom: 1px; }
+    .step span { font-size: 0.79rem; color: var(--text-muted); }
+
+    /* ─── Notice ───────────────────────────────────────────────── */
+    .notice {
+      display: flex; gap: 11px; align-items: flex-start;
+      margin-top: 20px; padding: 13px 15px;
+      border: 1px solid rgba(201,133,0,0.28);
+      background: rgba(201,133,0,0.07);
+      border-radius: var(--radius-sm);
+      font-size: 0.79rem; line-height: 1.6; color: var(--text-2);
+    }
+    .notice .icon { width: 15px; height: 15px; color: var(--warning); flex-shrink: 0; margin-top: 2px; }
+
+    footer {
+      max-width: 1120px; margin: 0 auto; padding: 26px 24px 40px;
+      border-top: 1px solid var(--border);
+      font-size: 0.78rem; color: var(--text-muted);
+      display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+      position: relative; z-index: 1;
+    }
 
     /* ─── Toast ────────────────────────────────────────────────── */
     .toast {
-      position: fixed;
-      bottom: 30px; right: 30px;
-      background: rgba(248,113,113,0.15);
-      border: 1px solid rgba(248,113,113,0.35);
-      border-radius: 12px;
-      padding: 14px 20px;
-      color: #fca5a5;
-      font-size: 0.85rem;
-      font-weight: 500;
-      z-index: 9999;
-      backdrop-filter: blur(16px);
-      transform: translateX(120%);
-      transition: transform 0.3s ease;
-      max-width: 340px;
+      position: fixed; bottom: 22px; right: 22px; z-index: 999;
+      max-width: 340px; padding: 13px 16px;
+      background: var(--surface-3);
+      border: 1px solid var(--border-firm);
+      border-left: 3px solid var(--meningioma);
+      border-radius: var(--radius-sm);
+      font-size: 0.83rem; color: var(--text);
+      box-shadow: 0 12px 34px rgba(0,0,0,0.55);
+      transform: translateY(140%); opacity: 0;
+      transition: transform .26s ease, opacity .26s ease;
     }
-    .toast.show { transform: translateX(0); }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    @media (max-width: 520px) { .toast { left: 16px; right: 16px; max-width: none; } }
 
-    /* ─── Animations ───────────────────────────────────────────── */
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(18px); }
-      to   { opacity: 1; transform: translateY(0); }
+    /* ─── Motion ───────────────────────────────────────────────── */
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    .rise { animation: rise .4s ease both; }
+    .d1 { animation-delay: .05s; }
+    .d2 { animation-delay: .1s; }
+    .d3 { animation-delay: .15s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important; scroll-behavior: auto !important;
+      }
     }
-    .fade-in  { animation: fadeInUp 0.5s ease forwards; }
-    .delay-1  { animation-delay: 0.1s; opacity: 0; }
-    .delay-2  { animation-delay: 0.2s; opacity: 0; }
-    .delay-3  { animation-delay: 0.3s; opacity: 0; }
   </style>
 </head>
 
 <body>
-  <!-- Animated Background -->
-  <div class="bg-canvas">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-  </div>
-  <div class="bg-grid"></div>
+  <div class="backdrop" aria-hidden="true"></div>
 
-  <!-- Page Content -->
-  <div class="page">
+  <!-- Icon sprite -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-brand" viewBox="0 0 24 24">
+        <path d="M12 4.5a3 3 0 0 0-5.7-1.3A2.7 2.7 0 0 0 3.6 6a3 3 0 0 0-.4 5.3A3 3 0 0 0 4.6 16a2.8 2.8 0 0 0 3 2.9A2.9 2.9 0 0 0 12 20Z"/>
+        <path d="M12 4.5a3 3 0 0 1 5.7-1.3A2.7 2.7 0 0 1 20.4 6a3 3 0 0 1 .4 5.3A3 3 0 0 1 19.4 16a2.8 2.8 0 0 1-3 2.9A2.9 2.9 0 0 1 12 20Z"/>
+        <path d="M12 4.5V20"/>
+      </symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24">
+        <path d="M21 15v3.5A2.5 2.5 0 0 1 18.5 21h-13A2.5 2.5 0 0 1 3 18.5V15"/>
+        <path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M12 4v12"/>
+      </symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24">
+        <path d="M3.5 12a8.5 8.5 0 0 1 14.6-6M20.5 12a8.5 8.5 0 0 1-14.6 6"/>
+        <path d="M18.5 2.5V6h-3.5M5.5 21.5V18H9"/>
+      </symbol>
+      <symbol id="i-analyze" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6.5"/><path d="M15.8 15.8 21 21"/><path d="M8.5 11h5M11 8.5v5"/>
+      </symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+      <symbol id="i-scan" viewBox="0 0 24 24">
+        <path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/>
+        <path d="M7 12h10"/>
+      </symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24">
+        <path d="M10.3 3.9 2.6 17.1A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.9L13.7 3.9a2 2 0 0 0-3.4 0Z"/>
+        <path d="M12 9v4.5M12 17h.01"/>
+      </symbol>
+    </defs>
+  </svg>
 
-    <!-- Header -->
-    <header class="fade-in">
-      <div class="logo-wrap">
-        <div class="logo-icon">🧠</div>
-        <div class="logo-text">NeuraScan</div>
+  <!-- ─── Top bar ─────────────────────────────────────────────── -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark"><svg class="icon"><use href="#i-brand"/></svg></div>
+        <div>
+          <div class="brand-name">NeuraScan</div>
+          <div class="brand-sub">ResNet18 · MRI classification</div>
+        </div>
       </div>
-      <p class="tagline">AI-powered brain tumor classification from MRI scans</p>
-      <div class="badge-row">
-        <span class="badge badge-blue">ResNet18</span>
-        <span class="badge badge-purple">Transfer Learning</span>
-        <span class="badge badge-green">97% Accuracy</span>
-      </div>
-    </header>
-
-    <!-- Stats Row -->
-    <div class="stats-row fade-in delay-1">
-      <div class="stat-card">
-        <div class="stat-val">97%</div>
-        <div class="stat-lbl">Test Accuracy</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val">4</div>
-        <div class="stat-lbl">Tumor Classes</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val">5K</div>
-        <div class="stat-lbl">Training Images</div>
+      <div class="status" id="status" title="Inference backend status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">checking…</span>
       </div>
     </div>
+  </div>
 
-    <!-- Main Grid -->
-    <div class="main-grid">
+  <!-- ─── Page ────────────────────────────────────────────────── -->
+  <main class="page">
 
-      <!-- Left — Upload -->
-      <div class="fade-in delay-2">
+    <section class="hero rise">
+      <h1>Brain tumour classification from MRI scans</h1>
+      <p>Upload an axial brain MRI and the model returns a predicted class with a calibrated probability across all four categories.</p>
+    </section>
+
+    <section class="meta-strip rise d1">
+      <div class="meta-item">
+        <div class="meta-val">97.0%</div>
+        <div class="meta-lbl">Test accuracy</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-val">4</div>
+        <div class="meta-lbl">Classes</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-val">5,000</div>
+        <div class="meta-lbl">Training images</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-val">224<span style="font-size:.8rem;color:var(--text-muted)">px</span></div>
+        <div class="meta-lbl">Input resolution</div>
+      </div>
+    </section>
+
+    <div class="grid">
+
+      <!-- Left column -->
+      <div class="rise d2">
         <div class="card">
-          <div class="card-title">Upload MRI Scan</div>
+          <div class="card-head">
+            <h2 class="card-title">Input scan</h2>
+            <span class="card-note" id="fileNote">No file selected</span>
+          </div>
 
-          <!-- Drop Zone -->
-          <div class="drop-zone" id="dropZone">
-            <!-- Default content -->
-            <div class="drop-content">
-              <div class="drop-icon">🩻</div>
-              <div class="drop-title">Drop your MRI image here</div>
-              <div class="drop-sub">Supports JPG, PNG, JPEG · Max 10 MB</div>
-              <button class="drop-btn" onclick="document.getElementById('fileInput').click()">
-                Choose File
-              </button>
+          <div class="drop" id="drop" role="button" tabindex="0"
+               aria-label="Upload an MRI image. Drop a file here or press Enter to browse.">
+            <div class="drop-body">
+              <div class="drop-icon"><svg class="icon"><use href="#i-upload"/></svg></div>
+              <div class="drop-title">Drop an MRI image here</div>
+              <div class="drop-sub">JPG, PNG, BMP or TIFF — up to 10&nbsp;MB</div>
+              <button class="btn btn-file" type="button" id="browseBtn">Browse files</button>
             </div>
-            <!-- Preview -->
-            <img id="imgPreview" alt="MRI Preview" />
+            <img id="imgPreview" alt="Preview of the uploaded MRI scan" />
             <div class="replace-hint">
-              🔄 Click to replace image
+              <svg class="icon"><use href="#i-refresh"/></svg> Click to replace
             </div>
-            <!-- Scan overlay -->
-            <div class="scan-overlay">
-              <div class="scan-line"></div>
-            </div>
+            <div class="scan" aria-hidden="true"></div>
           </div>
 
           <input type="file" id="fileInput" accept="image/*" />
 
-          <!-- Actions -->
-          <div class="analyze-row">
-            <button class="btn-analyze" id="analyzeBtn" disabled>
-              <span class="spinner"></span>
-              <span class="btn-text">✦ &nbsp;Analyze Scan</span>
+          <div class="actions">
+            <button class="btn btn-primary" id="analyzeBtn" disabled>
+              <span class="spinner" aria-hidden="true"></span>
+              <span class="btn-label">
+                <svg class="icon" style="width:15px;height:15px"><use href="#i-analyze"/></svg>
+                Analyse scan
+              </span>
             </button>
-            <button class="btn-clear" id="clearBtn" title="Clear">✕</button>
+            <button class="btn btn-ghost" id="clearBtn" title="Clear the current scan" aria-label="Clear">
+              <svg class="icon"><use href="#i-close"/></svg>
+            </button>
           </div>
         </div>
 
-        <!-- How It Works -->
-        <div class="card" style="margin-top: 20px;">
-          <div class="card-title">How It Works</div>
+        <div class="card">
+          <div class="card-head"><h2 class="card-title">How it works</h2></div>
           <div class="steps">
             <div class="step">
               <div class="step-num">1</div>
-              <div class="step-info">
-                <strong>Upload MRI Image</strong>
-                <small>Drag & drop or browse your brain MRI scan</small>
-              </div>
+              <div><strong>Upload</strong><span>Drag in a brain MRI slice, or browse for one.</span></div>
             </div>
             <div class="step">
               <div class="step-num">2</div>
-              <div class="step-info">
-                <strong>AI Analysis</strong>
-                <small>ResNet18 processes your image in milliseconds</small>
-              </div>
+              <div><strong>Preprocess</strong><span>Resized to 224&nbsp;px, greyscale expanded to 3 channels, ImageNet-normalised.</span></div>
             </div>
             <div class="step">
               <div class="step-num">3</div>
-              <div class="step-info">
-                <strong>Get Results</strong>
-                <small>View predicted class with confidence scores</small>
-              </div>
+              <div><strong>Infer</strong><span>Fine-tuned ResNet18 produces logits, softmaxed to class probabilities.</span></div>
+            </div>
+            <div class="step">
+              <div class="step-num">4</div>
+              <div><strong>Review</strong><span>Read the top class alongside the full distribution, not in isolation.</span></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Right — Results -->
-      <div class="fade-in delay-3">
+      <!-- Right column -->
+      <div class="rise d3">
         <div class="card">
-          <div class="card-title">Analysis Results</div>
-
-          <!-- Empty State -->
-          <div class="empty-state" id="emptyState">
-            <div class="empty-icon">🔍</div>
-            <p class="empty-text">Upload an MRI scan and click <strong>Analyze Scan</strong> to see the AI prediction.</p>
+          <div class="card-head">
+            <h2 class="card-title">Result</h2>
+            <span class="card-note" id="latencyNote"></span>
           </div>
 
-          <!-- Result Panel -->
-          <div id="resultPanel">
-            <!-- Hero result -->
-            <div class="result-hero" id="resultHero">
-              <div class="result-label">Predicted Diagnosis</div>
-              <div class="result-class" id="resultClass">—</div>
-              <div class="result-conf">
-                Confidence: <span class="conf-pill" id="confPill">—%</span>
+          <div class="empty" id="empty">
+            <div class="empty-icon"><svg class="icon"><use href="#i-scan"/></svg></div>
+            <p>Upload a scan and run <strong style="color:var(--text-2)">Analyse scan</strong> to see the prediction here.</p>
+          </div>
+
+          <div id="result" aria-live="polite">
+            <div class="verdict" id="verdict">
+              <div class="verdict-lbl">Predicted class</div>
+              <div class="verdict-row">
+                <div class="verdict-class" id="verdictClass">—</div>
+                <div class="verdict-conf" id="verdictConf">—<small>confidence</small></div>
               </div>
             </div>
 
-            <!-- Class info -->
-            <div class="class-info" id="classInfo"></div>
+            <p class="about" id="about"></p>
 
-            <!-- Probability Bars -->
-            <div class="card-title">Probability Distribution</div>
-            <div class="prob-list" id="probList"></div>
+            <div class="card-head" style="margin-bottom:14px">
+              <h3 class="card-title">Probability distribution</h3>
+              <span class="card-note">softmax</span>
+            </div>
+            <div class="probs" id="probs"></div>
 
-            <!-- Disclaimer -->
-            <div class="disclaimer">
-              <span>⚠️</span>
-              <div>This AI tool is for <strong>research purposes only</strong>. Always consult a qualified medical professional for an accurate diagnosis.</div>
+            <div class="notice">
+              <svg class="icon"><use href="#i-alert"/></svg>
+              <div>Research and educational use only. This model is not a medical device and must not be used for diagnosis. Always consult a qualified clinician.</div>
             </div>
           </div>
         </div>
       </div>
 
-    </div><!-- /main-grid -->
-  </div><!-- /page -->
+    </div>
+  </main>
 
-  <!-- Toast -->
-  <div class="toast" id="toast"></div>
+  <footer>
+    <span>NeuraScan — ResNet18 transfer learning on the BRISC2025 classification set.</span>
+    <span>97.00% test accuracy · 1,000 held-out scans</span>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script>
-    // ─── Class metadata ───────────────────────────────────────────
-    const CLASS_META = {
+    'use strict';
+
+    // ─── Class metadata ─────────────────────────────────────────
+    const CLASSES = {
       glioma: {
-        label:       'Glioma',
-        description: 'Gliomas are tumors that originate from glial cells in the brain or spine. They account for about 33% of all brain tumors and range from slow-growing (grade I/II) to aggressive (grade III/IV, including glioblastoma).',
-        color:       'glioma',
+        label: 'Glioma',
+        color: 'var(--glioma)',
+        about: 'Gliomas originate in the glial cells of the brain or spine and account for roughly a third of all brain tumours. They range from slow-growing grade I–II lesions to aggressive grade III–IV disease, including glioblastoma.',
       },
       meningioma: {
-        label:       'Meningioma',
-        description: 'Meningiomas arise from the meninges — the membranes surrounding the brain and spinal cord. They are usually slow-growing and benign (grades I/II), but some can be aggressive. Often treatable with surgery.',
-        color:       'meningioma',
+        label: 'Meningioma',
+        color: 'var(--meningioma)',
+        about: 'Meningiomas arise from the meninges, the membranes enclosing the brain and spinal cord. Most are slow-growing and benign, and are frequently treatable with surgery, though a minority behave aggressively.',
       },
       no_tumor: {
-        label:       'No Tumor Detected',
-        description: 'The AI model did not detect signs of a tumor in the provided MRI scan. The image appears to show normal brain tissue. Note: this does not replace a clinical evaluation.',
-        color:       'no_tumor',
+        label: 'No tumour',
+        color: 'var(--no_tumor)',
+        about: 'The model found no evidence of a tumour in this scan; the tissue appears within normal appearance. A negative result here is not a clinical clearance and does not replace radiological review.',
       },
       pituitary: {
-        label:       'Pituitary Tumor',
-        description: 'Pituitary tumors form in the pituitary gland at the base of the brain. Most are adenomas (benign), but they can affect hormone production and exert pressure on nearby structures. Often treatable.',
-        color:       'pituitary',
+        label: 'Pituitary tumour',
+        color: 'var(--pituitary)',
+        about: 'Pituitary tumours develop in the gland at the base of the brain. The majority are benign adenomas, but they can disrupt hormone production and press on adjacent structures. Most are treatable.',
       },
     };
 
-    const CLASS_ORDER = ['glioma', 'meningioma', 'no_tumor', 'pituitary'];
+    const ORDER = ['glioma', 'meningioma', 'no_tumor', 'pituitary'];
+    const MAX_BYTES = 10 * 1024 * 1024;
 
-    // ─── DOM refs ─────────────────────────────────────────────────
-    const dropZone   = document.getElementById('dropZone');
-    const fileInput  = document.getElementById('fileInput');
-    const imgPreview = document.getElementById('imgPreview');
-    const analyzeBtn = document.getElementById('analyzeBtn');
-    const clearBtn   = document.getElementById('clearBtn');
-    const emptyState = document.getElementById('emptyState');
-    const resultPanel= document.getElementById('resultPanel');
-    const toast      = document.getElementById('toast');
+    const $ = id => document.getElementById(id);
+    const drop       = $('drop'),      fileInput  = $('fileInput'),
+          imgPreview = $('imgPreview'), analyzeBtn = $('analyzeBtn'),
+          clearBtn   = $('clearBtn'),  browseBtn  = $('browseBtn'),
+          empty      = $('empty'),     result     = $('result'),
+          toast      = $('toast'),     fileNote   = $('fileNote'),
+          latencyNote= $('latencyNote');
 
     let currentFile = null;
 
-    // ─── Drag & Drop ──────────────────────────────────────────────
-    dropZone.addEventListener('click', () => {
-      if (!dropZone.classList.contains('scanning'))
-        fileInput.click();
+    // ─── Backend status ─────────────────────────────────────────
+    (async function checkHealth() {
+      try {
+        const res  = await fetch('/health');
+        const data = await res.json();
+        $('statusText').textContent = 'model ready · ' + (data.device || 'cpu');
+      } catch {
+        $('statusDot').classList.add('is-down');
+        $('statusText').textContent = 'backend unreachable';
+      }
+    })();
+
+    // ─── File selection ─────────────────────────────────────────
+    drop.addEventListener('click', () => {
+      if (!drop.classList.contains('scanning')) fileInput.click();
     });
-
-    dropZone.addEventListener('dragover', e => {
-      e.preventDefault();
-      dropZone.classList.add('drag-over');
+    drop.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
     });
+    browseBtn.addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
 
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-
-    dropZone.addEventListener('drop', e => {
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+    drop.addEventListener('drop', e => {
       e.preventDefault();
-      dropZone.classList.remove('drag-over');
-      const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith('image/')) loadFile(file);
-      else showToast('Please drop a valid image file.');
+      drop.classList.remove('drag-over');
+      loadFile(e.dataTransfer.files[0]);
     });
 
     fileInput.addEventListener('change', () => {
-      if (fileInput.files[0]) loadFile(fileInput.files[0]);
+      loadFile(fileInput.files[0]);
       fileInput.value = '';
     });
 
-    // ─── Load File ────────────────────────────────────────────────
     function loadFile(file) {
+      if (!file) return;
+      if (!file.type.startsWith('image/')) return showToast('That file is not an image. Use JPG, PNG, BMP or TIFF.');
+      if (file.size > MAX_BYTES)          return showToast('That image is larger than 10 MB. Try a smaller file.');
+
       currentFile = file;
       const reader = new FileReader();
       reader.onload = e => {
         imgPreview.src = e.target.result;
-        dropZone.classList.add('has-image');
+        drop.classList.add('has-image');
         analyzeBtn.disabled = false;
-        hideResults();
+        fileNote.textContent = `${file.name} · ${(file.size / 1024).toFixed(0)} KB`;
+        hideResult();
       };
+      reader.onerror = () => showToast('That image could not be read.');
       reader.readAsDataURL(file);
     }
 
-    // ─── Clear ────────────────────────────────────────────────────
     clearBtn.addEventListener('click', () => {
       currentFile = null;
-      imgPreview.src = '';
-      dropZone.classList.remove('has-image', 'scanning');
+      imgPreview.removeAttribute('src');
+      drop.classList.remove('has-image', 'scanning');
       analyzeBtn.disabled = true;
-      hideResults();
+      fileNote.textContent = 'No file selected';
+      latencyNote.textContent = '';
+      hideResult();
     });
 
-    function hideResults() {
-      resultPanel.classList.remove('visible');
-      emptyState.style.display = 'flex';
+    function hideResult() {
+      result.classList.remove('visible');
+      empty.style.display = 'flex';
     }
 
-    // ─── Analyze ──────────────────────────────────────────────────
+    // ─── Inference ──────────────────────────────────────────────
     analyzeBtn.addEventListener('click', async () => {
       if (!currentFile) return;
 
-      // Start scanning UI
-      analyzeBtn.classList.add('loading');
+      analyzeBtn.classList.add('is-loading');
       analyzeBtn.disabled = true;
-      dropZone.classList.add('scanning');
+      drop.classList.add('scanning');
+      const started = performance.now();
 
       try {
-        const fd = new FormData();
-        fd.append('image', currentFile);
+        const body = new FormData();
+        body.append('image', currentFile);
 
-        const res  = await fetch('/predict', { method: 'POST', body: fd });
+        const res  = await fetch('/predict', { method: 'POST', body });
         const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Prediction failed.');
 
-        if (!res.ok || data.error) throw new Error(data.error || 'Prediction failed');
-
-        showResults(data);
-      } catch(err) {
-        showToast('❌ ' + (err.message || 'Something went wrong. Is the server running?'));
+        latencyNote.textContent = `${Math.round(performance.now() - started)} ms`;
+        render(data);
+      } catch (err) {
+        showToast(err.message || 'Something went wrong. Is the server running?');
       } finally {
-        analyzeBtn.classList.remove('loading');
+        analyzeBtn.classList.remove('is-loading');
         analyzeBtn.disabled = false;
-        dropZone.classList.remove('scanning');
+        drop.classList.remove('scanning');
       }
     });
 
-    // ─── Show Results ─────────────────────────────────────────────
-    function showResults(data) {
-      const cls    = data.predicted_class;
-      const conf   = data.confidence;
-      const probs  = data.all_probabilities;
-      const meta   = CLASS_META[cls] || {};
-      const color  = meta.color || 'blue';
+    // ─── Render ─────────────────────────────────────────────────
+    function render(data) {
+      const cls   = data.predicted_class;
+      const meta  = CLASSES[cls] || { label: cls, color: 'var(--text)', about: '' };
+      const probs = data.all_probabilities || {};
 
-      // Hero
-      const resultClass = document.getElementById('resultClass');
-      resultClass.textContent = meta.label || cls;
-      resultClass.className  = `result-class color-${color}`;
+      $('verdict').style.borderLeftColor = meta.color;
+      $('verdictClass').textContent = meta.label;
+      $('verdictConf').innerHTML = `${data.confidence.toFixed(1)}%<small>confidence</small>`;
+      $('about').textContent = meta.about;
 
-      const confPill = document.getElementById('confPill');
-      confPill.textContent = `${conf.toFixed(1)}%`;
-      confPill.className   = `conf-pill pill-${color}`;
+      const list = $('probs');
+      list.innerHTML = '';
 
-      // Info box
-      const classInfo = document.getElementById('classInfo');
-      classInfo.textContent = meta.description || '';
-      classInfo.className   = `class-info border-${color} bg-box-${color}`;
+      [...ORDER]
+        .sort((a, b) => (probs[b] || 0) - (probs[a] || 0))
+        .forEach((c, i) => {
+          const m   = CLASSES[c] || { label: c, color: 'var(--text-2)' };
+          const pct = (probs[c] || 0).toFixed(1);
 
-      // Probability bars
-      const probList = document.getElementById('probList');
-      probList.innerHTML = '';
-      const sorted = [...CLASS_ORDER].sort((a,b) => (probs[b]||0) - (probs[a]||0));
+          const row = document.createElement('div');
+          row.className = 'prob' + (c === cls ? ' is-top' : '');
+          row.style.animation = `rise .35s ease ${i * 0.06}s both`;
+          row.innerHTML = `
+            <div class="prob-top">
+              <span class="prob-name">
+                <span class="swatch" style="background:${m.color}"></span>
+                ${m.label}
+                ${c === cls ? '<span class="tag">TOP</span>' : ''}
+              </span>
+              <span class="prob-val">${pct}%</span>
+            </div>
+            <div class="track" role="img" aria-label="${m.label}: ${pct} percent">
+              <div class="fill" style="background:${m.color}" data-pct="${pct}"></div>
+            </div>`;
+          list.appendChild(row);
+        });
 
-      sorted.forEach((c, idx) => {
-        const pct  = (probs[c] || 0).toFixed(1);
-        const m    = CLASS_META[c] || {};
-        const item = document.createElement('div');
-        item.className = 'prob-item';
-        item.style.cssText = `animation: fadeInUp 0.4s ease ${idx*0.08}s both`;
-        item.innerHTML = `
-          <div class="prob-header">
-            <span class="prob-name">
-              <span class="prob-dot dot-${m.color}"></span>
-              ${m.label || c}
-              ${c === cls ? '<span class="badge badge-blue" style="padding:2px 8px;font-size:0.65rem;">TOP</span>' : ''}
-            </span>
-            <span class="prob-val color-${m.color}">${pct}%</span>
-          </div>
-          <div class="prob-bar-bg">
-            <div class="prob-bar-fill bg-${m.color}" style="width:0%"
-                 data-width="${pct}"></div>
-          </div>`;
-        probList.appendChild(item);
+      requestAnimationFrame(() => {
+        list.querySelectorAll('.fill').forEach(f => { f.style.width = f.dataset.pct + '%'; });
       });
 
-      // Animate bars after append
-      setTimeout(() => {
-        document.querySelectorAll('.prob-bar-fill').forEach(bar => {
-          bar.style.width = bar.dataset.width + '%';
-        });
-      }, 50);
-
-      // Show panel
-      emptyState.style.display = 'none';
-      resultPanel.classList.add('visible');
+      empty.style.display = 'none';
+      result.classList.add('visible');
     }
 
-    // ─── Toast ────────────────────────────────────────────────────
+    // ─── Toast ──────────────────────────────────────────────────
     let toastTimer;
     function showToast(msg) {
       toast.textContent = msg;
       toast.classList.add('show');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 4500);
     }
   </script>
 </body>

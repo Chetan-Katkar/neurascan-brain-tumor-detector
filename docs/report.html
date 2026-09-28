@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuraScan — Project Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+
+  :root {
+    color-scheme: dark;
+    --bg: #08090b; --surface-1: #0f1318; --surface-2: #161b21; --surface-3: #1d242c;
+    --border: rgba(255,255,255,0.08); --border-firm: rgba(255,255,255,0.14);
+    --ink: #e9ecef; --ink-2: #9aa4af; --ink-muted: #6b7682;
+    --glioma: #3987e5; --meningioma: #d95926; --no_tumor: #199e70; --pituitary: #9085e9;
+    --warning: #c98500;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  /* Keep the dark theme when printing or exporting to PDF. */
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: var(--bg); color: var(--ink);
+         font-family: 'Inter', system-ui, -apple-system, sans-serif;
+         -webkit-font-smoothing: antialiased; line-height: 1.55; }
+  h1, h2, h3 { letter-spacing: -0.02em; line-height: 1.2; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace;
+          font-variant-numeric: tabular-nums; }
+  a { color: var(--glioma); }
+
+  @page { size: A4; margin: 16mm 14mm; }
+  body { padding: 0 24px 80px; }
+  .doc { max-width: 860px; margin: 0 auto; }
+
+  .cover { padding: 64px 0 40px; border-bottom: 1px solid var(--border-firm);
+            margin-bottom: 44px; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
+              color: var(--ink-muted); font-weight: 600; margin-bottom: 20px; }
+  h1 { font-size: 40px; font-weight: 800; margin-bottom: 14px; }
+  .lede { font-size: 18px; color: var(--ink-2); max-width: 680px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+           margin-top: 32px; }
+  .kpi { background: var(--surface-1); border: 1px solid var(--border);
+          border-radius: 12px; padding: 16px 18px; }
+  .kpi b { display: block; font-size: 26px; font-weight: 700; letter-spacing: -0.03em;
+            font-variant-numeric: tabular-nums; }
+  .kpi span { font-size: 12px; color: var(--ink-muted); }
+
+  h2 { font-size: 13px; font-weight: 700; letter-spacing: 0.13em;
+        text-transform: uppercase; color: var(--ink-muted);
+        margin: 44px 0 18px; padding-bottom: 10px;
+        border-bottom: 1px solid var(--border); }
+  h3 { font-size: 17px; font-weight: 600; margin: 28px 0 10px; }
+  p { color: var(--ink-2); margin-bottom: 14px; font-size: 15.5px; }
+  p strong { color: var(--ink); font-weight: 600; }
+  ul { margin: 0 0 16px 20px; color: var(--ink-2); font-size: 15.5px; }
+  li { margin-bottom: 9px; }
+  li strong { color: var(--ink); font-weight: 600; }
+
+  figure { background: var(--surface-1); border: 1px solid var(--border);
+            border-radius: 12px; padding: 22px 20px 16px; margin: 24px 0; }
+  figcaption { font-size: 13px; color: var(--ink-muted); margin-top: 12px;
+                padding-top: 12px; border-top: 1px solid var(--border); }
+  figcaption b { color: var(--ink-2); font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; margin: 18px 0; }
+  th { text-align: right; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em;
+        text-transform: uppercase; color: var(--ink-muted); padding: 0 8px 10px;
+        border-bottom: 1px solid var(--border-firm); }
+  th:first-child { text-align: left; padding-left: 0; }
+  td { text-align: right; padding: 9px 8px; border-bottom: 1px solid var(--border);
+        color: var(--ink-2); font-family: 'JetBrains Mono', monospace;
+        font-variant-numeric: tabular-nums; }
+  td:first-child { text-align: left; padding-left: 0; color: var(--ink);
+                    font-family: 'Inter', sans-serif; font-weight: 500; }
+  tr.phase2 td { background: rgba(57,135,229,0.05); }
+  .tbl-text td:not(:first-child):not(:last-child),
+  .tbl-text th:not(:first-child):not(:last-child) { text-align: left; }
+  .cname { display: inline-flex; align-items: center; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 2px; }
+  .scroll { max-height: 460px; overflow: auto; border: 1px solid var(--border);
+             border-radius: 10px; padding: 0 14px; }
+
+  .callout { border: 1px solid var(--border); border-left: 3px solid var(--glioma);
+              background: var(--surface-1); border-radius: 10px; padding: 16px 18px;
+              margin: 22px 0; }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout.warn { border-left-color: var(--warning);
+                   background: rgba(201,133,0,0.06);
+                   border-color: rgba(201,133,0,0.25); }
+
+  footer { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--border-firm);
+            font-size: 13px; color: var(--ink-muted); }
+  @media print {
+    figure, .callout, .kpi, table { break-inside: avoid; }
+    h2 { break-after: avoid; }
+    .scroll { max-height: none; overflow: visible; }
+  }
+</style>
+</head>
+<body>
+<div class="doc">
+
+<div class="cover">
+  <div class="eyebrow">Project report &middot; Medical imaging &middot; Deep learning</div>
+  <h1>Brain tumour classification from MRI using ResNet18</h1>
+  <p class="lede">A two-phase transfer-learning schedule — frozen backbone, then a
+    fine-tuned deepest block — takes a ResNet18 to 97.00% accuracy on four-way brain MRI
+    classification from only 5,000 training images.</p>
+  <div class="kpis">
+    <div class="kpi"><b>97.00%</b><span>Test accuracy</span></div>
+    <div class="kpi"><b>0.9715</b><span>Macro F1</span></div>
+    <div class="kpi"><b>100%</b><span>No-tumour recall</span></div>
+    <div class="kpi"><b>30</b><span>Errors in 1,000</span></div>
+  </div>
+</div>
+
+<h2>1. Problem</h2>
+<p>Tumour type must be identified before treatment can be planned. Manual MRI reading is
+  slow, demands scarce expertise, and shows measurable inter-observer variability —
+  particularly between <strong>glioma</strong> and <strong>meningioma</strong>, which can
+  present with overlapping appearance on a single axial slice.</p>
+<p>The task here is single-label, four-way classification of one axial slice into
+  glioma, meningioma, no tumour, or pituitary tumour.</p>
+
+<h2>2. Data</h2>
+<table>
+  <tr><th>Split</th><th>Images</th><th>Derivation</th></tr>
+  <tr><td>Train</td><td>4,000</td><td>80% of train dir</td></tr>
+  <tr><td>Validation</td><td>1,000</td><td>20%, stratified</td></tr>
+  <tr><td>Test</td><td>1,000</td><td>held out entirely</td></tr>
+</table>
+<p>The 80:20 split is stratified on the label so class balance is preserved in both
+  halves, and seeded (<span class="mono">random_state = 42</span>) so the run reproduces
+  exactly. The classes are moderately imbalanced — no tumour is only 14% of the test set
+  — which is why §5 reports per-class metrics rather than accuracy alone.</p>
+
+<h2>3. Preprocessing</h2>
+<table class="tbl-text">
+  <tr><th>Step</th><th>Operation</th><th>Why</th></tr>
+  <tr><td>1</td><td>Resize 224&times;224</td><td>ResNet18's pretrained resolution</td></tr>
+  <tr><td>2</td><td>Greyscale &rarr; 3ch</td><td>Pretrained RGB filters apply unchanged</td></tr>
+  <tr><td>3</td><td>Horizontal flip</td><td>Train only; anatomy is near-symmetric</td></tr>
+  <tr><td>4</td><td>ImageNet normalise</td><td>Matches the pretrained distribution</td></tr>
+</table>
+<div class="callout">
+  <p><strong>On augmentation.</strong> Only horizontal flipping is used. Rotation, shear
+    and colour jitter were deliberately excluded: they can introduce geometry or intensity
+    patterns that never occur in real acquisition, and an augmentation that fabricates
+    non-physical images teaches the model artefacts rather than pathology. Validation and
+    test transforms use no augmentation at all.</p>
+</div>
+
+<h2>4. Method</h2>
+<p>ResNet18 pretrained on ImageNet, with the final layer replaced:
+  <span class="mono">Linear(512 &rarr; 1000)</span> becomes
+  <span class="mono">Linear(512 &rarr; 4)</span>. Total parameters: 11,178,564.</p>
+<p>That new head starts <strong>random</strong>. Unfreezing the whole network immediately
+  would push large, noisy gradients back through the backbone and corrupt the pretrained
+  features before they could be of any use. The two-phase schedule prevents this.</p>
+<table class="tbl-text">
+  <tr><th>Setting</th><th>Phase 1</th><th>Phase 2</th></tr>
+  <tr><td>Epochs</td><td>5</td><td>15</td></tr>
+  <tr><td>Trainable params</td><td>2,052</td><td>8,395,780</td></tr>
+  <tr><td>Learning rate</td><td>1e-4</td><td>5e-5</td></tr>
+  <tr><td>Scheduler</td><td>none</td><td>StepLR (&gamma;=0.1, step 7)</td></tr>
+  <tr><td>Unfrozen</td><td>fc only</td><td>layer4 + fc</td></tr>
+  <tr><td>Optimiser</td><td>Adam</td><td>Adam</td></tr>
+  <tr><td>Batch size</td><td>32</td><td>32</td></tr>
+</table>
+<p>Only <strong>layer4</strong> is unfrozen in Phase 2, not the full backbone: early
+  convolutional layers encode generic edge and texture detectors that transfer well across
+  domains, while the deepest block encodes the class-specific semantics that most need
+  adapting from natural images to MRI.</p>
+
+<figure>
+  <svg viewBox="0 0 760 312" width="100%" role="img" aria-label="Validation accuracy rises from 58 percent to 98 percent over 20 epochs; unfreezing layer4 at epoch 6 produces the decisive jump.">
+<line x1="56" y1="262.0" x2="628" y2="262.0" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="44.0" y="266.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">40%</text>
+<line x1="56" y1="224.0" x2="628" y2="224.0" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="44.0" y="228.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">50%</text>
+<line x1="56" y1="186.0" x2="628" y2="186.0" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="44.0" y="190.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">60%</text>
+<line x1="56" y1="148.0" x2="628" y2="148.0" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="44.0" y="152.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">70%</text>
+<line x1="56" y1="110.0" x2="628" y2="110.0" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="44.0" y="114.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">80%</text>
+<line x1="56" y1="72.0" x2="628" y2="72.0" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="44.0" y="76.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">90%</text>
+<line x1="56" y1="34.0" x2="628" y2="34.0" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="44.0" y="38.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">100%</text>
+<line x1="56" y1="262" x2="628" y2="262" stroke="rgba(255,255,255,0.16)" stroke-width="1"/>
+<text x="56.0" y="282.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">1</text>
+<text x="176.4" y="282.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">5</text>
+<text x="326.9" y="282.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">10</text>
+<text x="477.5" y="282.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">15</text>
+<text x="628.0" y="282.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">20</text>
+<text x="342.0" y="304.0" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">Epoch</text>
+<line x1="191.5" y1="28" x2="191.5" y2="262" stroke="rgba(255,255,255,0.16)" stroke-width="1" stroke-dasharray="3 4"/>
+<text x="183.5" y="20.0" font-family="'Inter', system-ui, sans-serif" font-size="11" font-weight="500" fill="#6b7682" text-anchor="end" opacity="1.0">Phase 1 — head only</text>
+<text x="199.5" y="20.0" font-family="'Inter', system-ui, sans-serif" font-size="11" font-weight="500" fill="#e9ecef" text-anchor="start" opacity="1.0">Phase 2 — layer4 + head</text>
+<polyline points="56.0,254.9 86.1,160.7 116.2,125.4 146.3,114.6 176.4,107.7 206.5,69.3 236.6,44.3 266.7,38.4 296.8,36.7 326.9,35.7 357.1,35.4 387.2,35.4 417.3,34.1 447.4,34.4 477.5,34.6 507.6,34.4 537.7,34.3 567.8,34.4 597.9,34.3 628.0,34.3" fill="none" stroke="#7d8792" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="56.0" cy="254.9" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="86.1" cy="160.7" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="116.2" cy="125.4" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="146.3" cy="114.6" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="176.4" cy="107.7" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="206.5" cy="69.3" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="236.6" cy="44.3" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="266.7" cy="38.4" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="296.8" cy="36.7" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="326.9" cy="35.7" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="357.1" cy="35.4" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="387.2" cy="35.4" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="417.3" cy="34.1" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="447.4" cy="34.4" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="477.5" cy="34.6" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="507.6" cy="34.4" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="537.7" cy="34.3" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="567.8" cy="34.4" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="597.9" cy="34.3" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<circle cx="628.0" cy="34.3" r="3.2" fill="#7d8792" stroke="#0f1318" stroke-width="2"/>
+<line x1="628.0" y1="34.3" x2="636.0" y2="14.3" stroke="#7d8792" stroke-width="1" opacity="0.55"/>
+<text x="640.0" y="18.3" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">Train</text>
+<text x="640.0" y="33.3" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="start" opacity="1.0">99.92%</text>
+<polyline points="56.0,193.2 86.1,129.4 116.2,111.5 146.3,104.3 176.4,94.0 206.5,51.9 236.6,46.5 266.7,48.1 296.8,44.3 326.9,43.1 357.1,43.9 387.2,42.0 417.3,41.2 447.4,42.0 477.5,42.4 507.6,42.7 537.7,42.4 567.8,42.7 597.9,41.2 628.0,41.6" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="56.0" cy="193.2" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="86.1" cy="129.4" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="116.2" cy="111.5" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="146.3" cy="104.3" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="176.4" cy="94.0" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="206.5" cy="51.9" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="236.6" cy="46.5" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="266.7" cy="48.1" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="296.8" cy="44.3" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="326.9" cy="43.1" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="357.1" cy="43.9" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="387.2" cy="42.0" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="417.3" cy="41.2" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="447.4" cy="42.0" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="477.5" cy="42.4" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="507.6" cy="42.7" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="537.7" cy="42.4" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="567.8" cy="42.7" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="597.9" cy="41.2" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<circle cx="628.0" cy="41.6" r="3.2" fill="#3987e5" stroke="#0f1318" stroke-width="2"/>
+<line x1="628.0" y1="41.6" x2="636.0" y2="63.6" stroke="#3987e5" stroke-width="1" opacity="0.55"/>
+<text x="640.0" y="67.6" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">Validation</text>
+<text x="640.0" y="82.6" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="400" fill="#6b7682" text-anchor="start" opacity="1.0">98.00%</text>
+<path d="M 206.5 59.9 L 242.7 80.8" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1"/>
+<text x="248.7" y="90.8" font-family="'Inter', system-ui, sans-serif" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">84.2% → 95.3%</text>
+<text x="248.7" y="107.8" font-family="'Inter', system-ui, sans-serif" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="start" opacity="1.0">in a single epoch, on unfreezing layer4</text>
+</svg>
+  <figcaption><b>Figure 1 — Accuracy across both phases.</b> Phase 1 plateaus at 84.2%
+    validation accuracy; a frozen ImageNet backbone can only reach so far into a domain as
+    distant as MRI. Unfreezing layer4 lifts validation accuracy to 95.3% within a single
+    epoch and past 97% by epoch 9. From epoch 13 onward, training sits at 99.9%+ while
+    validation holds a narrow 97.7–98.1% band and validation loss stops falling — the
+    model has converged, and further epochs would not help.</figcaption>
+</figure>
+
+<h3>Epoch-by-epoch</h3>
+<div class="scroll">
+<table>
+  <tr><th>Epoch</th><th>Phase</th><th>Train loss</th><th>Train acc</th>
+      <th>Val loss</th><th>Val acc</th></tr>
+  <tr><td>1</td><td>1</td><td>1.2805</td><td>41.88%</td><td>1.1217</td><td>58.10%</td></tr><tr><td>2</td><td>1</td><td>1.0199</td><td>66.67%</td><td>0.9114</td><td>74.90%</td></tr><tr><td>3</td><td>1</td><td>0.8586</td><td>75.95%</td><td>0.7842</td><td>79.60%</td></tr><tr><td>4</td><td>1</td><td>0.7559</td><td>78.80%</td><td>0.6969</td><td>81.50%</td></tr><tr><td>5</td><td>1</td><td>0.6807</td><td>80.60%</td><td>0.6316</td><td>84.20%</td></tr><tr class=phase2><td>6</td><td>2</td><td>0.2829</td><td>90.72%</td><td>0.1414</td><td>95.30%</td></tr><tr class=phase2><td>7</td><td>2</td><td>0.0936</td><td>97.28%</td><td>0.1008</td><td>96.70%</td></tr><tr class=phase2><td>8</td><td>2</td><td>0.0492</td><td>98.83%</td><td>0.1087</td><td>96.30%</td></tr><tr class=phase2><td>9</td><td>2</td><td>0.0295</td><td>99.28%</td><td>0.0860</td><td>97.30%</td></tr><tr class=phase2><td>10</td><td>2</td><td>0.0219</td><td>99.55%</td><td>0.0789</td><td>97.60%</td></tr><tr class=phase2><td>11</td><td>2</td><td>0.0165</td><td>99.62%</td><td>0.0835</td><td>97.40%</td></tr><tr class=phase2><td>12</td><td>2</td><td>0.0154</td><td>99.62%</td><td>0.0717</td><td>97.90%</td></tr><tr class=phase2><td>13</td><td>2</td><td>0.0068</td><td>99.97%</td><td>0.0695</td><td>98.10%</td></tr><tr class=phase2><td>14</td><td>2</td><td>0.0076</td><td>99.90%</td><td>0.0687</td><td>97.90%</td></tr><tr class=phase2><td>15</td><td>2</td><td>0.0076</td><td>99.85%</td><td>0.0686</td><td>97.80%</td></tr><tr class=phase2><td>16</td><td>2</td><td>0.0057</td><td>99.90%</td><td>0.0698</td><td>97.70%</td></tr><tr class=phase2><td>17</td><td>2</td><td>0.0063</td><td>99.92%</td><td>0.0685</td><td>97.80%</td></tr><tr class=phase2><td>18</td><td>2</td><td>0.0059</td><td>99.90%</td><td>0.0705</td><td>97.70%</td></tr><tr class=phase2><td>19</td><td>2</td><td>0.0055</td><td>99.92%</td><td>0.0639</td><td>98.10%</td></tr><tr class=phase2><td>20</td><td>2</td><td>0.0043</td><td>99.92%</td><td>0.0647</td><td>98.00%</td></tr>
+</table>
+</div>
+
+<h2>5. Results</h2>
+<p><strong>Test accuracy: 97.00%</strong> — 970 of 1,000 held-out scans
+  classified correctly.</p>
+
+<table>
+  <tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th><th>Support</th></tr>
+  <tr><td><span class="cname"><span class="dot" style="background:#3987e5"></span>Glioma</span></td><td>0.9793</td><td>0.9331</td><td>0.9556</td><td>254</td></tr><tr><td><span class="cname"><span class="dot" style="background:#d95926"></span>Meningioma</span></td><td>0.9486</td><td>0.9641</td><td>0.9562</td><td>306</td></tr><tr><td><span class="cname"><span class="dot" style="background:#199e70"></span>No tumour</span></td><td>0.9722</td><td>1.0000</td><td>0.9859</td><td>140</td></tr><tr><td><span class="cname"><span class="dot" style="background:#9085e9"></span>Pituitary</span></td><td>0.9835</td><td>0.9933</td><td>0.9884</td><td>300</td></tr>
+  <tr><td><b>Macro avg</b></td><td>0.9709</td><td>0.9726</td><td>0.9715</td><td>1,000</td></tr>
+  <tr><td><b>Weighted avg</b></td><td>0.9702</td><td>0.9700</td><td>0.9699</td><td>1,000</td></tr>
+</table>
+<p>Macro and weighted averages agree to within 0.002, which confirms the headline number
+  is not being carried by the larger classes — the model is genuinely competent on all
+  four.</p>
+
+<figure>
+  <svg viewBox="0 0 760 240" width="100%" role="img" aria-label="Per-class F1: pituitary 0.988, no tumour 0.986, meningioma 0.956, glioma 0.956.">
+<line x1="118.0" y1="14" x2="118.0" y2="188" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="118.0" y="208.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">0.90</text>
+<line x1="229.6" y1="14" x2="229.6" y2="188" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="229.6" y="208.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">0.92</text>
+<line x1="341.2" y1="14" x2="341.2" y2="188" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="341.2" y="208.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">0.94</text>
+<line x1="452.8" y1="14" x2="452.8" y2="188" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="452.8" y="208.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">0.96</text>
+<line x1="564.4" y1="14" x2="564.4" y2="188" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="564.4" y="208.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">0.98</text>
+<line x1="676.0" y1="14" x2="676.0" y2="188" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="676.0" y="208.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">1.00</text>
+<text x="397.0" y="228.0" font-family="'Inter', system-ui, sans-serif" font-size="11.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="1.0">F1 score  (axis starts at 0.90)</text>
+<text x="104.0" y="46.8" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">Pituitary</text>
+<rect x="118" y="32.8" width="558" height="20" rx="4" fill="rgba(255,255,255,0.045)"/>
+<rect x="118" y="32.8" width="493.3" height="20" rx="4" fill="#9085e9"/>
+<text x="623.3" y="46.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">0.9884</text>
+<text x="104.0" y="61.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 300</text>
+<text x="104.0" y="88.2" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">No tumour</text>
+<rect x="118" y="74.2" width="558" height="20" rx="4" fill="rgba(255,255,255,0.045)"/>
+<rect x="118" y="74.2" width="479.3" height="20" rx="4" fill="#199e70"/>
+<text x="609.3" y="88.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">0.9859</text>
+<text x="104.0" y="103.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 140</text>
+<text x="104.0" y="129.8" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">Meningioma</text>
+<rect x="118" y="115.8" width="558" height="20" rx="4" fill="rgba(255,255,255,0.045)"/>
+<rect x="118" y="115.8" width="313.6" height="20" rx="4" fill="#d95926"/>
+<text x="443.6" y="129.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">0.9562</text>
+<text x="104.0" y="144.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 306</text>
+<text x="104.0" y="171.2" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">Glioma</text>
+<rect x="118" y="157.2" width="558" height="20" rx="4" fill="rgba(255,255,255,0.045)"/>
+<rect x="118" y="157.2" width="310.2" height="20" rx="4" fill="#3987e5"/>
+<text x="440.2" y="171.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">0.9556</text>
+<text x="104.0" y="186.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 254</text>
+</svg>
+  <figcaption><b>Figure 2 — Per-class F1.</b> Pituitary and no tumour lead; glioma and
+    meningioma trail together, which is the first hint that they are being confused with
+    each other rather than failing independently.</figcaption>
+</figure>
+
+<figure>
+  <svg viewBox="0 0 760 338" width="100%" role="img" aria-label="Confusion matrix. 19 of 30 total errors sit on the glioma-meningioma boundary; no tumour has perfect recall.">
+<text x="395.0" y="22.0" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="500" fill="#6b7682" text-anchor="middle" opacity="1.0">Predicted</text>
+<text x="22" y="163.0" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="500" fill="#6b7682" text-anchor="middle" transform="rotate(-90 22 163.0)">Actual</text>
+<text x="193.2" y="36.0" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="500" fill="#9aa4af" text-anchor="middle" opacity="1.0">Glioma</text>
+<text x="327.8" y="36.0" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="500" fill="#9aa4af" text-anchor="middle" opacity="1.0">Meningioma</text>
+<text x="462.2" y="36.0" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="500" fill="#9aa4af" text-anchor="middle" opacity="1.0">No tumour</text>
+<text x="596.8" y="36.0" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="500" fill="#9aa4af" text-anchor="middle" opacity="1.0">Pituitary</text>
+<text x="112.0" y="79.2" font-family="'Inter', system-ui, sans-serif" font-size="12.5" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">Glioma</text>
+<text x="112.0" y="95.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 254</text>
+<rect x="127.0" y="51.0" width="132.5" height="54.5" rx="5" fill="#86b6ef"/>
+<text x="193.2" y="80.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="600" fill="#0b1220" text-anchor="middle" opacity="1.0">237</text>
+<text x="193.2" y="98.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#0b1220" text-anchor="middle" opacity="0.78">93.3%</text>
+<rect x="261.5" y="51.0" width="132.5" height="54.5" rx="5" fill="#184f95"/>
+<text x="327.8" y="80.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#ffffff" text-anchor="middle" opacity="1.0">14</text>
+<text x="327.8" y="98.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#ffffff" text-anchor="middle" opacity="0.78">5.5%</text>
+<rect x="396.0" y="51.0" width="132.5" height="54.5" rx="5" fill="#121820" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="462.2" y="80.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#6b7682" text-anchor="middle" opacity="1.0">0</text>
+<text x="462.2" y="98.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="0.78">0.0%</text>
+<rect x="530.5" y="51.0" width="132.5" height="54.5" rx="5" fill="#0d366b"/>
+<text x="596.8" y="80.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#cde2fb" text-anchor="middle" opacity="1.0">3</text>
+<text x="596.8" y="98.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#cde2fb" text-anchor="middle" opacity="0.78">1.2%</text>
+<text x="680.0" y="83.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">93.3%</text>
+<text x="112.0" y="135.8" font-family="'Inter', system-ui, sans-serif" font-size="12.5" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">Meningioma</text>
+<text x="112.0" y="151.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 306</text>
+<rect x="127.0" y="107.5" width="132.5" height="54.5" rx="5" fill="#0d366b"/>
+<text x="193.2" y="136.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#cde2fb" text-anchor="middle" opacity="1.0">5</text>
+<text x="193.2" y="154.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#cde2fb" text-anchor="middle" opacity="0.78">1.6%</text>
+<rect x="261.5" y="107.5" width="132.5" height="54.5" rx="5" fill="#86b6ef"/>
+<text x="327.8" y="136.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="600" fill="#0b1220" text-anchor="middle" opacity="1.0">295</text>
+<text x="327.8" y="154.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#0b1220" text-anchor="middle" opacity="0.78">96.4%</text>
+<rect x="396.0" y="107.5" width="132.5" height="54.5" rx="5" fill="#0d366b"/>
+<text x="462.2" y="136.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#cde2fb" text-anchor="middle" opacity="1.0">4</text>
+<text x="462.2" y="154.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#cde2fb" text-anchor="middle" opacity="0.78">1.3%</text>
+<rect x="530.5" y="107.5" width="132.5" height="54.5" rx="5" fill="#0d366b"/>
+<text x="596.8" y="136.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#cde2fb" text-anchor="middle" opacity="1.0">2</text>
+<text x="596.8" y="154.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#cde2fb" text-anchor="middle" opacity="0.78">0.7%</text>
+<text x="680.0" y="139.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">96.4%</text>
+<text x="112.0" y="192.2" font-family="'Inter', system-ui, sans-serif" font-size="12.5" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">No tumour</text>
+<text x="112.0" y="208.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 140</text>
+<rect x="127.0" y="164.0" width="132.5" height="54.5" rx="5" fill="#121820" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="193.2" y="193.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#6b7682" text-anchor="middle" opacity="1.0">0</text>
+<text x="193.2" y="211.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="0.78">0.0%</text>
+<rect x="261.5" y="164.0" width="132.5" height="54.5" rx="5" fill="#121820" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="327.8" y="193.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#6b7682" text-anchor="middle" opacity="1.0">0</text>
+<text x="327.8" y="211.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="0.78">0.0%</text>
+<rect x="396.0" y="164.0" width="132.5" height="54.5" rx="5" fill="#86b6ef"/>
+<text x="462.2" y="193.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="600" fill="#0b1220" text-anchor="middle" opacity="1.0">140</text>
+<text x="462.2" y="211.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#0b1220" text-anchor="middle" opacity="0.78">100.0%</text>
+<rect x="530.5" y="164.0" width="132.5" height="54.5" rx="5" fill="#121820" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="596.8" y="193.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#6b7682" text-anchor="middle" opacity="1.0">0</text>
+<text x="596.8" y="211.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="0.78">0.0%</text>
+<text x="680.0" y="196.2" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">100.0%</text>
+<text x="112.0" y="248.8" font-family="'Inter', system-ui, sans-serif" font-size="12.5" font-weight="500" fill="#e9ecef" text-anchor="end" opacity="1.0">Pituitary</text>
+<text x="112.0" y="264.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">n = 300</text>
+<rect x="127.0" y="220.5" width="132.5" height="54.5" rx="5" fill="#121820" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="193.2" y="249.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#6b7682" text-anchor="middle" opacity="1.0">0</text>
+<text x="193.2" y="267.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="0.78">0.0%</text>
+<rect x="261.5" y="220.5" width="132.5" height="54.5" rx="5" fill="#0d366b"/>
+<text x="327.8" y="249.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#cde2fb" text-anchor="middle" opacity="1.0">2</text>
+<text x="327.8" y="267.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#cde2fb" text-anchor="middle" opacity="0.78">0.7%</text>
+<rect x="396.0" y="220.5" width="132.5" height="54.5" rx="5" fill="#121820" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+<text x="462.2" y="249.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="500" fill="#6b7682" text-anchor="middle" opacity="1.0">0</text>
+<text x="462.2" y="267.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="middle" opacity="0.78">0.0%</text>
+<rect x="530.5" y="220.5" width="132.5" height="54.5" rx="5" fill="#86b6ef"/>
+<text x="596.8" y="249.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="17" font-weight="600" fill="#0b1220" text-anchor="middle" opacity="1.0">298</text>
+<text x="596.8" y="267.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#0b1220" text-anchor="middle" opacity="0.78">99.3%</text>
+<text x="680.0" y="252.8" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="600" fill="#e9ecef" text-anchor="start" opacity="1.0">99.3%</text>
+<text x="680.0" y="36.0" font-family="'Inter', system-ui, sans-serif" font-size="11.5" font-weight="500" fill="#6b7682" text-anchor="start" opacity="1.0">Recall</text>
+<text x="126.0" y="314.0" font-family="'Inter', system-ui, sans-serif" font-size="11" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">Share of row</text>
+<rect x="136" y="302" width="26" height="12" rx="2" fill="#121820"/>
+<rect x="164" y="302" width="26" height="12" rx="2" fill="#0d366b"/>
+<rect x="192" y="302" width="26" height="12" rx="2" fill="#184f95"/>
+<rect x="220" y="302" width="26" height="12" rx="2" fill="#256abf"/>
+<rect x="248" y="302" width="26" height="12" rx="2" fill="#2a78d6"/>
+<rect x="276" y="302" width="26" height="12" rx="2" fill="#3987e5"/>
+<rect x="304" y="302" width="26" height="12" rx="2" fill="#86b6ef"/>
+<text x="136.0" y="330.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="start" opacity="1.0">0%</text>
+<text x="330.0" y="330.0" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="400" fill="#6b7682" text-anchor="end" opacity="1.0">100%</text>
+</svg>
+  <figcaption><b>Figure 3 — Confusion matrix.</b> Rows are the true class, columns the
+    prediction; cells carry the raw count and the share of the row, and the diagonal is
+    per-class recall. Thirty errors in total, and their distribution is anything but
+    uniform.</figcaption>
+</figure>
+
+<h3>Error analysis</h3>
+<ul>
+  <li><strong>Glioma &harr; meningioma accounts for 19 of 30 errors (63%).</strong>
+    Fourteen gliomas read as meningioma, five meningiomas as glioma. This is the single
+    dominant failure mode, and it mirrors the hardest distinction for human readers: on
+    one axial slice, without contrast timing or multi-plane context, the two can look
+    genuinely similar. Glioma consequently has the lowest recall of the four, at
+    93.3%.</li>
+  <li><strong>No tumour achieves perfect recall (140/140).</strong> Not one scan
+    containing a tumour was classified as tumour-free. For a screening-style application
+    this is the most valuable property the model has, since a false negative is the
+    costliest error. Its precision of 0.9722 reflects four meningiomas misfiled as
+    no-tumour — errors in the <em>other</em> direction, which are the safer kind.</li>
+  <li><strong>Pituitary is nearly separable</strong>, at 99.3% recall with two errors in
+    300. Pituitary tumours occupy a distinctive skull-base location, giving the network a
+    positional cue the other tumour types do not offer.</li>
+</ul>
+
+<h2>6. Deployment</h2>
+<p>The trained weights are served by a Flask application. Device selection is automatic at
+  start-up — CUDA on an NVIDIA GPU, Apple MPS on Apple Silicon, otherwise CPU. The
+  original training run used Apple MPS.</p>
+<table class="tbl-text">
+  <tr><th>Method</th><th>Route</th><th>Purpose</th></tr>
+  <tr><td>GET</td><td>/</td><td>Browser interface</td></tr>
+  <tr><td>GET</td><td>/health</td><td>Liveness + active device</td></tr>
+  <tr><td>POST</td><td>/predict</td><td>multipart image &rarr; prediction</td></tr>
+</table>
+<p>The uploaded image runs through the same resize &rarr; greyscale-to-3-channel &rarr;
+  normalise transform used at validation time, then through the network under
+  <span class="mono">torch.no_grad()</span>, softmaxed into a distribution.</p>
+<p>The interface renders the <strong>full probability distribution</strong>, not just the
+  winning class. A 97%-confident prediction and a 51%-confident one are very different
+  objects, and surfacing the distribution makes that difference visible to whoever reads
+  the result. Class colours are fixed and contrast-validated, and every bar is directly
+  labelled, so identity never rests on colour alone.</p>
+
+<h2>7. Limitations</h2>
+<ul>
+  <li><strong>Single-slice classification.</strong> Radiologists read the full volume
+    across planes with sequence and contrast context; a slice ambiguous alone is often
+    unambiguous in the stack.</li>
+  <li><strong>No localisation.</strong> The model returns a class, not a segmentation or
+    bounding box — it cannot say where the lesion is or how large.</li>
+  <li><strong>Single-dataset evaluation.</strong> MRI appearance varies with scanner
+    vendor, field strength and protocol. Performance on another site's scans is
+    unmeasured and should not be assumed.</li>
+  <li><strong>Uncalibrated confidence.</strong> The reported number is a raw softmax
+    output, and deep networks are typically overconfident. A stated 97% should not be
+    read as a well-calibrated probability without temperature scaling.</li>
+  <li><strong>Not a medical device.</strong> Unvalidated for clinical use, with no
+    regulatory approval.</li>
+</ul>
+
+<h2>8. Future work</h2>
+<ul>
+  <li><strong>Attack the dominant error mode directly</strong> — class-weighted or focal
+    loss biased toward the glioma/meningioma boundary, or a second-stage binary classifier
+    invoked only when the top two probabilities are both in that pair.</li>
+  <li><strong>Explainability.</strong> Grad-CAM overlays would let a reader check whether
+    the network attended to the lesion or to an irrelevant artefact — a prerequisite for
+    any clinical conversation.</li>
+  <li><strong>Volume-level inference</strong> — aggregate across the slices of a study
+    rather than classifying one.</li>
+  <li><strong>External validation</strong> on an independently acquired dataset, to
+    measure the real generalisation gap.</li>
+  <li><strong>Confidence calibration</strong> via temperature scaling.</li>
+  <li><strong>Larger backbones</strong> — ResNet50, EfficientNet, a ViT — benchmarked to
+    see whether capacity or data is the binding constraint.</li>
+</ul>
+
+<h2>9. Conclusion</h2>
+<p>A ResNet18 fine-tuned in two phases classifies brain MRI slices into four categories at
+  <strong>97.00% test accuracy</strong>, with a macro F1 of 0.9715 and perfect recall on
+  the no-tumour class. The two-phase schedule is what makes this work on 5,000 images:
+  freezing the backbone while the new head stabilises, then adapting only the deepest
+  block at a reduced learning rate, lifted validation accuracy from an 84.2% ceiling to
+  98.0%.</p>
+<p>The residual errors are concentrated rather than diffuse — 63% of them sit on the
+  glioma/meningioma boundary, the same distinction that is hardest for human readers on a
+  single slice. That concentration is itself useful: it points at a specific, addressable
+  target for the next iteration rather than a general need for more capacity.</p>
+
+<div class="callout warn">
+  <p><strong>Disclaimer.</strong> Research and educational use only. This model is not a
+    medical device and is not validated for clinical diagnosis. Always consult a qualified
+    medical professional.</p>
+</div>
+
+<footer>
+  NeuraScan &middot; ResNet18 transfer learning on BRISC2025 &middot; PyTorch, torchvision,
+  Flask. Figures generated from the executed training notebook.
+</footer>
+
+</div>
+</body>
+</html>

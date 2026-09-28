@@ -1,152 +1,137 @@
-# 🧠 NeuraScan — Brain Tumor AI Classifier
+# NeuraScan — Brain Tumour Classifier
 
-A deep learning web app that classifies brain MRI scans into 4 categories using a ResNet18 model trained with PyTorch.
+A deep-learning web app that classifies brain MRI scans into four categories using a
+ResNet18 model fine-tuned with PyTorch.
 
-**Test Accuracy: 97%** | **Device: Apple MPS (Mac GPU)** | **Classes: Glioma · Meningioma · No Tumor · Pituitary**
+**97.00% test accuracy** · 1,000 held-out scans · Classes: glioma, meningioma, no tumour, pituitary
 
 ---
 
-## 📁 Project Structure
+## Project structure
 
 ```
-Brain Tumor Detector/
-├── app.py                               ← Flask web server + /predict API
-├── brain_tumor_resnet18.pth             ← Trained model weights (44 MB)
-├── brain_tumor_resnet18_optimized.ipynb ← Training notebook (clean)
-├── brain_tumor_resnet18_optimized_executed.ipynb ← Executed notebook with results
+neurascan-brain-tumor-detector/
+├── app.py                                          Flask server + /predict API
+├── brain_tumor_resnet18.pth                        Trained weights (44 MB)
+├── brain_tumor_resnet18_optimized.ipynb            Training notebook
+├── brain_tumor_resnet18_optimized_executed.ipynb   Executed notebook with results
+├── preprocess (4).ipynb                            Dataset preprocessing
+├── requirements.txt                                Python dependencies
 ├── templates/
-│   └── index.html                       ← Web UI (dark glassmorphism frontend)
-├── server.log                           ← Server output log
-└── README.md                            ← This file
+│   └── index.html                                  Web UI (dark theme)
+└── docs/
+    ├── REPORT.md                                   Project report (Markdown source)
+    ├── report.html / report.pdf                    Project report, formatted (8pp A4)
+    ├── poster.html / poster.pdf / poster.png       Conference poster (A2 portrait)
+    └── build_docs.py                               Regenerates the poster and report
 ```
 
----
+### Regenerating the poster and report
 
-## 🚀 How to Run the Web App (Step by Step)
-
-### Step 1 — Open Terminal
-
-Open the **Terminal** app on your Mac.
-
----
-
-### Step 2 — Navigate to the Project Folder
+Figures are inline SVG generated from the recorded training results, so no plotting
+library is needed:
 
 ```bash
-cd "/Users/swaroopnaik1905/Brain Tumor Detector"
+python3 docs/build_docs.py     # rewrites docs/poster.html and docs/report.html
 ```
 
 ---
 
-### Step 3 — Install Dependencies (First Time Only)
+## Running the web app
 
-Run this once to install the required Python packages:
+### 1. Install dependencies (first time only)
 
 ```bash
-pip3 install flask flask-cors torch torchvision pillow
+pip3 install -r requirements.txt
 ```
 
-> ✅ If you already ran this before, skip to Step 4.
-
----
-
-### Step 4 — Start the Server
+### 2. Start the server
 
 ```bash
 python3 app.py
 ```
 
-You should see output like:
+Expected output:
 
 ```
-🖥️  Using device: mps
-✅ Model loaded from: .../brain_tumor_resnet18.pth
-🚀 Starting server at http://localhost:5001
+[device] mps
+[model]  loaded from .../brain_tumor_resnet18.pth
+[server] http://localhost:5001
  * Running on http://127.0.0.1:5001
 ```
 
----
+The device line reads `cuda` on an NVIDIA GPU, `mps` on Apple Silicon, or `cpu` otherwise.
 
-### Step 5 — Open the App in Browser
+### 3. Open the app
 
-Open your browser (Chrome/Safari/Firefox) and go to:
+Visit <http://127.0.0.1:5001> in a browser.
 
-```
-http://127.0.0.1:5001
-```
+### 4. Use it
 
----
+1. Drag an MRI image onto the upload area, or click **Browse files**.
+2. Click **Analyse scan**.
+3. Read the predicted class, the confidence, and the full probability distribution.
 
-### Step 6 — Use the App
-
-1. **Drag & drop** an MRI image onto the upload zone  
-   — OR — click **"Choose File"** to browse your files
-2. Click **"✦ Analyze Scan"**
-3. View the predicted tumor class, confidence %, and probability bars
+Stop the server with `Ctrl + C`.
 
 ---
 
-### Step 7 — Stop the Server
+## API
 
-Press `Ctrl + C` in the Terminal window to stop the server.
-
----
-
-## 🔁 Quick Restart (After First Setup)
-
-Each time you want to use the app again:
+| Method | Route      | Body                       | Returns                                                                   |
+|--------|------------|----------------------------|---------------------------------------------------------------------------|
+| `GET`  | `/`        | —                          | The web UI                                                                 |
+| `GET`  | `/health`  | —                          | `{"status": "ok", "device": "..."}`                                        |
+| `POST` | `/predict` | `multipart/form-data` with an `image` field | `predicted_class`, `confidence`, `all_probabilities`, `image_preview` |
 
 ```bash
-cd "/Users/swaroopnaik1905/Brain Tumor Detector"
-python3 app.py
+curl -F "image=@scan.jpg" http://127.0.0.1:5001/predict
 ```
 
-Then open **http://127.0.0.1:5001** in your browser.
+---
+
+## Supported image formats
+
+`.jpg` · `.jpeg` · `.png` · `.bmp` · `.tif` · `.tiff` — up to 10 MB.
 
 ---
 
-## 🧪 Supported Image Formats
+## Tumour classes
 
-| Format | Supported |
-|--------|-----------|
-| `.jpg` / `.jpeg` | ✅ Yes |
-| `.png` | ✅ Yes |
-| `.bmp` | ✅ Yes |
-| `.tif` / `.tiff` | ✅ Yes |
-
----
-
-## 🏷️ Tumor Classes
-
-| Class | Color | Description |
-|-------|-------|-------------|
-| **Glioma** | 🔴 Red | Tumor from glial cells; most aggressive type |
-| **Meningioma** | 🟠 Orange | Tumor from brain's outer membrane; usually benign |
-| **No Tumor** | 🟢 Green | No tumor detected in the MRI scan |
-| **Pituitary** | 🟣 Purple | Tumor in the pituitary gland; usually treatable |
+| Class | Description |
+|-------|-------------|
+| **Glioma** | Arises from glial cells; ranges from slow-growing to highly aggressive. |
+| **Meningioma** | Arises from the meninges; usually slow-growing and benign. |
+| **No tumour** | No tumour signature detected in the scan. |
+| **Pituitary** | Forms in the pituitary gland; mostly benign adenomas, usually treatable. |
 
 ---
 
-## 🤖 Model Details
+## Model
 
 | Property | Value |
 |----------|-------|
-| Architecture | ResNet18 |
-| Pre-training | ImageNet weights |
-| Fine-tuning | 2-phase transfer learning |
-| Phase 1 | 5 epochs — head only (LR = 1e-4) |
-| Phase 2 | 15 epochs — layer4 + head (LR = 5e-5) |
-| Input size | 224 × 224 px, grayscale → 3-channel |
-| Optimizer | Adam + StepLR scheduler |
+| Architecture | ResNet18 (ImageNet pretrained) |
+| Parameters | 11,178,564 total |
+| Input | 224 × 224, greyscale expanded to 3 channels |
+| Augmentation | Random horizontal flip only |
+| Normalisation | ImageNet mean/std |
+| Phase 1 | 5 epochs, frozen backbone, head only, Adam LR 1e-4 |
+| Phase 2 | 15 epochs, `layer4` + head unfrozen, Adam LR 5e-5, StepLR |
+| Split | 4,000 train / 1,000 validation (stratified 80:20) / 1,000 test |
 | Test accuracy | **97.00%** |
+| Macro F1 | 0.9715 |
+
+Full results, per-class metrics and the confusion matrix are in [`docs/REPORT.md`](docs/REPORT.md).
+A one-page summary for presentation is in [`docs/poster.html`](docs/poster.html).
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
-This tool is for **research and educational purposes only**.  
-Always consult a qualified medical professional for clinical diagnosis.
+This tool is for research and educational purposes only. It is not a medical device and
+must not be used for clinical diagnosis. Always consult a qualified medical professional.
 
 ---
 
-*Built with PyTorch · Flask · ResNet18 · Apple MPS*
+Built with PyTorch, torchvision and Flask.

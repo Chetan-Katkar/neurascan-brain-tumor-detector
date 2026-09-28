@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 from torchvision import transforms, models
 from PIL import Image
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 # ─── Config ──────────────────────────────────────────────────────────────────
@@ -29,7 +29,7 @@ elif torch.backends.mps.is_available():
 else:
     device = torch.device('cpu')
 
-print(f"🖥️  Using device: {device}")
+print(f"[device] {device}")
 
 # ─── Load Model ──────────────────────────────────────────────────────────────
 model = models.resnet18(weights=None)
@@ -37,7 +37,7 @@ model.fc = nn.Linear(512, len(CLASS_NAMES))
 model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
 model = model.to(device)
 model.eval()
-print(f"✅ Model loaded from: {MODEL_PATH}")
+print(f"[model]  loaded from {MODEL_PATH}")
 
 # ─── Transform ───────────────────────────────────────────────────────────────
 transform = transforms.Compose([
@@ -54,7 +54,11 @@ CORS(app)
 
 @app.route('/')
 def index():
-    with open(os.path.join(os.path.dirname(__file__), 'templates', 'index.html'), 'r') as f:
+    # Read as UTF-8 explicitly. Without it Python uses the locale codec, which on
+    # Windows is cp1252 — that mangles the page's non-ASCII characters, and throws
+    # UnicodeDecodeError outright on any byte cp1252 has no mapping for.
+    index_path = os.path.join(os.path.dirname(__file__), 'templates', 'index.html')
+    with open(index_path, encoding='utf-8') as f:
         return f.read()
 
 
@@ -113,5 +117,5 @@ def health():
 
 if __name__ == '__main__':
     os.makedirs(os.path.join(os.path.dirname(__file__), 'templates'), exist_ok=True)
-    print("🚀 Starting server at http://localhost:5001")
+    print("[server] http://localhost:5001")
     app.run(debug=False, host='0.0.0.0', port=5001)
